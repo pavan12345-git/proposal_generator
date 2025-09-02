@@ -9,27 +9,39 @@ import { cn } from "@/lib/utils"
 import {
   FileText,
   AlertTriangle,
-  Wrench,
-  Package,
   Calendar,
   DollarSign,
-  Users,
-  Shield,
-  FileSignature,
   FolderOpen,
+  Lightbulb,
+  ImageIcon,
+  Star,
+  GitBranch,
+  CircuitBoard,
+  PlusCircle,
+  Wallet,
+  CreditCard,
+  Banknote,
+  TrendingUp,
+  ListChecks,
 } from "lucide-react"
 
 type SectionKey =
   | "executive-summary"
-  | "problem-statement"
-  | "proposed-solution"
-  | "scope-deliverables"
-  | "timeline-milestones"
-  | "budget-pricing"
-  | "team-qualifications"
-  | "risk-assessment"
-  | "terms-conditions"
-  | "appendices"
+  | "project-overview"
+  | "the-problem"
+  | "our-solution"
+  | "screenshots"
+  | "key-value-propositions"
+  | "process-flow-diagram"
+  | "technical-architecture"
+  | "one-time-development-cost"
+  | "additional-features-recommended"
+  | "operational-costs-monthly"
+  | "monthly-retainer-fee"
+  | "total-investment-from-client"
+  | "implementation-timeline"
+  | "benefits-and-roi"
+  | "next-steps"
 
 type Section = {
   key: SectionKey
@@ -43,72 +55,114 @@ const allSections: Section[] = [
   {
     key: "executive-summary",
     title: "Executive Summary",
-    description: "High-level overview of the project’s value, goals, and outcomes.",
+    description: "High-level value statement, objectives, and expected outcomes tailored to the client.",
     pages: "1–2",
     Icon: FileText,
   },
   {
-    key: "problem-statement",
-    title: "Problem Statement",
-    description: "Clearly defines the client’s challenges and business context.",
+    key: "project-overview",
+    title: "Project Overview",
+    description: "Context, scope, and goals of the engagement with an outline of major components.",
+    pages: "1–2",
+    Icon: FolderOpen,
+  },
+  {
+    key: "the-problem",
+    title: "The Problem",
+    description: "Current challenges, pain points, and business impact motivating the initiative.",
     pages: "1",
     Icon: AlertTriangle,
   },
   {
-    key: "proposed-solution",
-    title: "Proposed Solution",
-    description: "Your approach, methodology, and rationale.",
+    key: "our-solution",
+    title: "Our Solution",
+    description: "Proposed approach, methodology, and technology stack to address the problem.",
     pages: "1–3",
-    Icon: Wrench,
+    Icon: Lightbulb,
   },
   {
-    key: "scope-deliverables",
-    title: "Project Scope & Deliverables",
-    description: "What’s included, phased breakdown, and assumptions.",
-    pages: "2–4",
-    Icon: Package,
+    key: "screenshots",
+    title: "Screenshots",
+    description: "Representative UI screens, mockups, or examples illustrating the experience.",
+    pages: "1–3",
+    Icon: ImageIcon,
   },
   {
-    key: "timeline-milestones",
-    title: "Timeline & Milestones",
-    description: "Schedule, key phases, and checkpoints.",
+    key: "key-value-propositions",
+    title: "Key Value Propositions",
+    description: "Clear differentiators and business outcomes the client can expect.",
+    pages: "1",
+    Icon: Star,
+  },
+  {
+    key: "process-flow-diagram",
+    title: "Process Flow Diagram",
+    description: "End-to-end workflow showing user interactions, systems, and decision points.",
+    pages: "1",
+    Icon: GitBranch,
+  },
+  {
+    key: "technical-architecture",
+    title: "Technical Architecture",
+    description: "High-level architecture including services, integrations, and data flows.",
+    pages: "1–2",
+    Icon: CircuitBoard,
+  },
+  {
+    key: "one-time-development-cost",
+    title: "One Time Development Cost",
+    description: "Build effort, assumptions, and fixed investment to deliver the scope.",
+    pages: "1",
+    Icon: DollarSign,
+  },
+  {
+    key: "additional-features-recommended",
+    title: "Additional Features Recommended",
+    description: "Optional enhancements suggested for future phases and roadmap.",
+    pages: "1",
+    Icon: PlusCircle,
+  },
+  {
+    key: "operational-costs-monthly",
+    title: "Operational Costs (Monthly)",
+    description: "Hosting, third‑party services, APIs, and monitoring costs.",
+    pages: "1",
+    Icon: Wallet,
+  },
+  {
+    key: "monthly-retainer-fee",
+    title: "Monthly Retainer Fee",
+    description: "Ongoing support, maintenance, and optimization retainer.",
+    pages: "1",
+    Icon: CreditCard,
+  },
+  {
+    key: "total-investment-from-client",
+    title: "Total Investment from Client",
+    description: "Combined view of one‑time and recurring costs for decision makers.",
+    pages: "1",
+    Icon: Banknote,
+  },
+  {
+    key: "implementation-timeline",
+    title: "Implementation Timeline",
+    description: "Phases, milestones, and estimated delivery windows.",
     pages: "1–2",
     Icon: Calendar,
   },
   {
-    key: "budget-pricing",
-    title: "Budget & Pricing",
-    description: "Cost breakdown, billing model, and payment terms.",
+    key: "benefits-and-roi",
+    title: "Benefits & ROI",
+    description: "Anticipated gains, cost savings, KPIs, and payback period.",
     pages: "1–2",
-    Icon: DollarSign,
+    Icon: TrendingUp,
   },
   {
-    key: "team-qualifications",
-    title: "Team & Qualifications",
-    description: "Relevant experience, roles, and bios.",
-    pages: "1–2",
-    Icon: Users,
-  },
-  {
-    key: "risk-assessment",
-    title: "Risk Assessment",
-    description: "Potential risks, impact, and mitigation strategies.",
+    key: "next-steps",
+    title: "Next Steps",
+    description: "Approval, kickoff plan, and onboarding requirements.",
     pages: "1",
-    Icon: Shield,
-  },
-  {
-    key: "terms-conditions",
-    title: "Terms & Conditions",
-    description: "Legal terms, confidentiality, and acceptance criteria.",
-    pages: "1–2",
-    Icon: FileSignature,
-  },
-  {
-    key: "appendices",
-    title: "Appendices",
-    description: "Supplementary information, references, and resources.",
-    pages: "As needed",
-    Icon: FolderOpen,
+    Icon: ListChecks,
   },
 ]
 
@@ -227,9 +281,7 @@ export default function ContentIndexPage() {
 
           {/* Bottom actions */}
           <div className="mt-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <div className="text-sm text-slate-600">
-              {count} of {total} sections selected
-            </div>
+            <div className="text-sm text-slate-600">{count} of 16 sections selected</div>
             <div className="flex items-center gap-2">
               <button
                 type="button"

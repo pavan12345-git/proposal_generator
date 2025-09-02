@@ -1,6 +1,7 @@
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { StepsSidebar } from "@/components/steps-sidebar"
 import { BusinessRequirementsForm } from "@/components/forms/business-requirements-form"
+import { TestDataTrigger } from "@/components/test-data-trigger"
 
 export default function RequirementsPage() {
   return (
@@ -18,7 +19,10 @@ export default function RequirementsPage() {
         <StepsSidebar />
         <section className="flex-1">
           <header className="mb-4">
-            <h1 className="text-balance text-2xl font-semibold text-slate-800">Business Requirements</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-balance text-2xl font-semibold text-slate-800">Business Requirements</h1>
+              <TestDataTrigger />
+            </div>
             <p className="mt-1 text-sm text-slate-600">
               Provide project details and objectives to kickstart your proposal.
             </p>
