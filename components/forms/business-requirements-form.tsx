@@ -461,12 +461,65 @@ export function BusinessRequirementsForm() {
     }
   }, [scenarioIndex])
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSubmitting(true)
-    setTimeout(() => {
+
+    try {
+      // Collect form data
+      const formData = new FormData(e.currentTarget)
+      const requirements = {
+        companyName: formData.get('companyName') as string,
+        projectTitle: formData.get('projectTitle') as string,
+        clientName: formData.get('clientName') as string,
+        clientCompany: formData.get('clientCompany') as string,
+        clientEmail: formData.get('clientEmail') as string,
+        projectDescription: formData.get('projectDescription') as string,
+        countryCode,
+        countryName,
+        budgetRange: budget,
+        timeline: formData.get('timeline') as string,
+        industryType: formData.get('industryType') as string,
+        objectives: formData.getAll('objectives') as string[]
+      }
+
+      // Call API to process requirements and generate executive summary
+      const response = await fetch('/api/process-requirements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requirements),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to process requirements')
+      }
+
+      const result = await response.json()
+      
+      // Store the proposal data in localStorage
+      localStorage.setItem('currentProposal', JSON.stringify(result.data))
+      
+      // Show success message
+      toast({ 
+        title: "Success!", 
+        description: "Requirements submitted and sections generated successfully." 
+      })
+
+      // Navigate to content index
       router.push("/content-index")
-    }, 300)
+    } catch (error) {
+      console.error('Error submitting requirements:', error)
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to submit requirements. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -743,7 +796,14 @@ export function BusinessRequirementsForm() {
           disabled={submitting}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-70"
         >
-          {submitting ? "Submitting..." : "Submit & Continue"}
+          {submitting ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+              Generating Executive Summary...
+            </span>
+          ) : (
+            "Submit & Continue"
+          )}
         </button>
       </div>
     </form>

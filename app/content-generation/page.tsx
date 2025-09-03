@@ -5,6 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { getCurrentProposal, updateProposalSection, regenerateExecutiveSummary, regenerateProjectOverview, regenerateTheProblem, regenerateOurSolution, formatProjectOverviewContent } from "@/lib/proposal-utils"
 
 type SectionStatus = "Generating" | "Complete" | "Needs Review"
 type Section = { id: string; title: string; content: string; status: SectionStatus }
@@ -161,7 +162,15 @@ function SectionListItem({
                 onChange={(e) => setContent(e.target.value)}
               />
             ) : (
-              <p className="line-clamp-3 text-pretty">{section.content || "No content yet."}</p>
+              <div className="line-clamp-3 text-pretty">
+                {section.id === 'project-overview' ? (
+                  <div className="whitespace-pre-line text-xs">
+                    {formatProjectOverviewContent(section.content) || "No content yet."}
+                  </div>
+                ) : (
+                  <p>{section.content || "No content yet."}</p>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -269,7 +278,13 @@ function PreviewDocument({
             <h3 className="text-lg font-semibold text-slate-900">
               {i + 1}. {s.title}
             </h3>
-            <p className="mt-2 text-sm leading-6 text-slate-700">{s.content || "Content not available yet."}</p>
+            {s.id === 'project-overview' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+                {formatProjectOverviewContent(s.content) || "Content not available yet."}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm leading-6 text-slate-700">{s.content || "Content not available yet."}</p>
+            )}
           </section>
         ))}
       </div>
@@ -288,7 +303,10 @@ export default function ContentGenerationPage() {
     try {
       const raw = localStorage.getItem("selectedSections")
       const company = localStorage.getItem("companyName")
+      const proposalRaw = localStorage.getItem("currentProposal")
+      
       if (company) setCompanyName(company)
+      
       if (raw) {
         const parsed = JSON.parse(raw) as Array<Partial<Section> & { title: string }>
         const normalized: Section[] = parsed.map((p) => ({
@@ -300,6 +318,28 @@ export default function ContentGenerationPage() {
         setSections(normalized.length ? normalized : SAMPLE_SECTIONS)
       } else {
         setSections(SAMPLE_SECTIONS)
+      }
+      
+      // Load proposal data for additional context
+      if (proposalRaw) {
+        const proposal = JSON.parse(proposalRaw)
+        
+        // Check if we have pre-generated content for executive summary and project overview
+        if (proposal?.sections['executive-summary']) {
+          const executiveSummarySection = sections.find(s => s.id === 'executive-summary')
+          if (executiveSummarySection) {
+            executiveSummarySection.content = proposal.sections['executive-summary'].content
+            executiveSummarySection.status = 'Complete'
+          }
+        }
+        
+        if (proposal?.sections['project-overview']) {
+          const projectOverviewSection = sections.find(s => s.id === 'project-overview')
+          if (projectOverviewSection) {
+            projectOverviewSection.content = proposal.sections['project-overview'].content
+            projectOverviewSection.status = 'Complete'
+          }
+        }
       }
     } catch {
       setSections(SAMPLE_SECTIONS)
@@ -320,24 +360,80 @@ export default function ContentGenerationPage() {
   const onEditContent = (id: string, content: string) =>
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, content, status: "Needs Review" } : s)))
 
-  const onRegenerate = (id: string) => {
+  const onRegenerate = async (id: string) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Generating" } : s)))
-    setTimeout(() => {
-      setSections((prev) =>
-        prev.map((s) =>
-          s.id === id
-            ? {
-                ...s,
-                content:
-                  s.content && s.content.length
-                    ? s.content + " Refined for clarity and impact."
-                    : "Generated an initial draft based on your requirements.",
-                status: "Complete",
-              }
-            : s,
-        ),
-      )
-    }, 900)
+    
+    try {
+      // Check if this is the executive summary, project overview, problem section, or solution section and we have proposal data
+      if (id === 'executive-summary' || id === 'project-overview' || id === 'the-problem' || id === 'our-solution') {
+        const proposal = getCurrentProposal()
+        if (proposal?.requirements) {
+          let newContent
+          
+          if (id === 'executive-summary') {
+            // Regenerate executive summary using Claude API
+            newContent = await regenerateExecutiveSummary(proposal.requirements)
+          } else if (id === 'project-overview') {
+            // Regenerate project overview using Claude API
+            newContent = await regenerateProjectOverview(proposal.requirements)
+          } else if (id === 'the-problem') {
+            // Regenerate the problem section using Claude API
+            newContent = await regenerateTheProblem(proposal.requirements)
+          } else if (id === 'our-solution') {
+            // Regenerate the solution section using Claude API
+            newContent = await regenerateOurSolution(proposal.requirements)
+          }
+          
+          if (newContent) {
+            setSections((prev) =>
+              prev.map((s) =>
+                s.id === id
+                  ? {
+                      ...s,
+                      content: newContent,
+                      status: "Complete",
+                    }
+                  : s,
+              ),
+            )
+            
+            // Update proposal data
+            updateProposalSection(id, {
+              content: newContent,
+              status: 'Complete',
+              version: (proposal.sections[id]?.version || 0) + 1
+            })
+            
+            return
+          }
+        }
+      }
+      
+      // Fallback for other sections or if no proposal data
+      setTimeout(() => {
+        setSections((prev) =>
+          prev.map((s) =>
+            s.id === id
+              ? {
+                  ...s,
+                  content:
+                    s.content && s.content.length
+                      ? s.content + " Refined for clarity and impact."
+                      : "Generated an initial draft based on your requirements.",
+                  status: "Complete",
+                }
+              : s,
+          ),
+        )
+      }, 900)
+    } catch (error) {
+      console.error('Error regenerating content:', error)
+      // Revert status on error
+      setSections((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Needs Review" } : s)))
+      
+      // Show error message
+      alert(`Failed to regenerate content: ${error.message}`)
+    }
   }
 
   const onDelete = (id: string) => setSections((prev) => prev.filter((s) => s.id !== id))

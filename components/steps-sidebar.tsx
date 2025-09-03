@@ -8,6 +8,9 @@ const navItems = [
   { label: "Landing", href: "/" },
   { label: "Requirements", href: "/requirements" },
   { label: "Content Index", href: "/content-index" },
+  { label: "Content Generation", href: "/content-generation" },
+  { label: "Approval", href: "/approval" },
+  { label: "Final Review", href: "/final-review" },
 ]
 
 export function StepsSidebar() {

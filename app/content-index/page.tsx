@@ -4,7 +4,8 @@ import type React from "react"
 
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { StepsSidebar } from "@/components/steps-sidebar"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
+import { formatProjectOverviewContent } from "@/lib/proposal-utils"
 import { cn } from "@/lib/utils"
 import {
   FileText,
@@ -168,12 +169,34 @@ const allSections: Section[] = [
 
 export default function ContentIndexPage() {
   const [selected, setSelected] = useState<Set<SectionKey>>(new Set())
+  const [currentProposal, setCurrentProposal] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   const total = allSections.length
   const count = selected.size
 
   const isAllSelected = count === total
   const isNoneSelected = count === 0
+
+  // Load current proposal data on component mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('currentProposal')
+      if (stored) {
+        const proposal = JSON.parse(stored)
+        setCurrentProposal(proposal)
+        
+        // Auto-select executive summary if it exists
+        if (proposal.sections['executive-summary']) {
+          setSelected(new Set(['executive-summary']))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading proposal data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   const handleToggle = (key: SectionKey) => {
     setSelected((prev) => {
@@ -190,15 +213,43 @@ export default function ContentIndexPage() {
   const selectedArray = useMemo(() => Array.from(selected), [selected])
 
   const handlePreview = (section: Section) => {
-    // In a future iteration we can open a modal/sheet. For now, simple feedback.
-    // eslint-disable-next-line no-alert
-    alert(`Preview for: ${section.title}\n\n${section.description}`)
+    // Check if we have pre-generated content for this section
+    if (section.key === 'executive-summary' && currentProposal?.sections['executive-summary']) {
+      const content = currentProposal.sections['executive-summary'].content
+      alert(`Executive Summary Preview:\n\n${content}`)
+    } else if (section.key === 'project-overview' && currentProposal?.sections['project-overview']) {
+      const content = currentProposal.sections['project-overview'].content
+      const formattedContent = formatProjectOverviewContent(content)
+      alert(`Project Overview Preview:\n\n${formattedContent}`)
+    } else if (section.key === 'executive-summary') {
+      // Show fallback message for executive summary if not generated
+      alert(`Executive Summary not yet generated. Please complete the requirements form first to automatically generate this section.`)
+    } else if (section.key === 'project-overview') {
+      // Show fallback message for project overview if not generated
+      alert(`Project Overview not yet generated. Please complete the requirements form first to automatically generate this section.`)
+    } else {
+      // In a future iteration we can open a modal/sheet. For now, simple feedback.
+      alert(`Preview for: ${section.title}\n\n${section.description}`)
+    }
   }
 
   const handleGenerate = () => {
-    // Wire up generation flow here (e.g., route or server action)
-    // eslint-disable-next-line no-alert
-    alert(`Generating content for ${count} section(s):\n\n- ${selectedArray.join("\n- ")}`)
+    // Store selected sections and navigate to content generation
+    const selectedSections = selectedArray.map(key => {
+      const section = allSections.find(s => s.key === key)
+      return {
+        id: key,
+        title: section?.title || key,
+        content: currentProposal?.sections[key]?.content || '',
+        status: currentProposal?.sections[key]?.status || 'Needs Review'
+      }
+    })
+    
+    localStorage.setItem('selectedSections', JSON.stringify(selectedSections))
+    localStorage.setItem('companyName', currentProposal?.requirements?.companyName || 'Your Company')
+    
+    // Navigate to content generation page
+    window.location.href = '/content-generation'
   }
 
   return (
@@ -262,6 +313,13 @@ export default function ContentIndexPage() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {(section.key === 'executive-summary' && currentProposal?.sections['executive-summary']) || 
+                       (section.key === 'project-overview' && currentProposal?.sections['project-overview']) ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                          <span className="h-1.5 w-1.5 rounded-full bg-green-600"></span>
+                          Generated
+                        </span>
+                      ) : null}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -270,7 +328,11 @@ export default function ContentIndexPage() {
                         }}
                         className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
                       >
-                        Preview Sample
+                        {(section.key === 'executive-summary' && currentProposal?.sections['executive-summary']) || 
+                         (section.key === 'project-overview' && currentProposal?.sections['project-overview'])
+                          ? 'Preview Generated' 
+                          : 'Preview Sample'
+                        }
                       </button>
                     </div>
                   </label>
