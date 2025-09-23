@@ -32,6 +32,205 @@ export function BusinessRequirementsForm() {
     | "AED"
     | "SGD"
 
+  // Comprehensive currency symbol mapping for all countries
+  const COUNTRY_CURRENCY_SYMBOLS: Record<string, string> = {
+    "Afghanistan": "؋",
+    "Albania": "L",
+    "Algeria": "دج",
+    "Andorra": "€",
+    "Angola": "Kz",
+    "Antigua and Barbuda": "EC$",
+    "Argentina": "$",
+    "Armenia": "֏",
+    "Australia": "A$",
+    "Austria": "€",
+    "Azerbaijan": "₼",
+    "Bahamas": "B$",
+    "Bahrain": ".د.ب",
+    "Bangladesh": "৳",
+    "Barbados": "Bds$",
+    "Belarus": "Br",
+    "Belgium": "€",
+    "Belize": "BZ$",
+    "Benin": "CFA",
+    "Bhutan": "Nu.",
+    "Bolivia": "Bs.",
+    "Bosnia and Herzegovina": "KM",
+    "Botswana": "P",
+    "Brazil": "R$",
+    "Brunei": "B$",
+    "Bulgaria": "лв",
+    "Burkina Faso": "CFA",
+    "Burundi": "FBu",
+    "Cabo Verde": "Esc",
+    "Cambodia": "៛",
+    "Cameroon": "CFA",
+    "Canada": "C$",
+    "Central African Republic": "CFA",
+    "Chad": "CFA",
+    "Chile": "$",
+    "China": "¥",
+    "Colombia": "$",
+    "Comoros": "CF",
+    "Congo (Democratic Republic)": "FC",
+    "Congo (Republic)": "CFA",
+    "Costa Rica": "₡",
+    "Croatia": "€",
+    "Cuba": "₱",
+    "Cyprus": "€",
+    "Czech Republic": "Kč",
+    "Denmark": "kr",
+    "Djibouti": "Fdj",
+    "Dominica": "EC$",
+    "Dominican Republic": "RD$",
+    "Ecuador": "$",
+    "Egypt": "E£",
+    "El Salvador": "$",
+    "Equatorial Guinea": "CFA",
+    "Eritrea": "Nfk",
+    "Estonia": "€",
+    "Eswatini": "E",
+    "Ethiopia": "Br",
+    "Fiji": "FJ$",
+    "Finland": "€",
+    "France": "€",
+    "Gabon": "CFA",
+    "Gambia": "D",
+    "Georgia": "₾",
+    "Germany": "€",
+    "Ghana": "₵",
+    "Greece": "€",
+    "Grenada": "EC$",
+    "Guatemala": "Q",
+    "Guinea": "FG",
+    "Guinea-Bissau": "CFA",
+    "Guyana": "GY$",
+    "Haiti": "G",
+    "Honduras": "L",
+    "Hungary": "Ft",
+    "Iceland": "kr",
+    "India": "₹",
+    "Indonesia": "Rp",
+    "Iran": "﷼",
+    "Iraq": "ع.د",
+    "Ireland": "€",
+    "Israel": "₪",
+    "Italy": "€",
+    "Jamaica": "J$",
+    "Japan": "¥",
+    "Jordan": "JD",
+    "Kazakhstan": "₸",
+    "Kenya": "KSh",
+    "Kiribati": "A$",
+    "Kuwait": "KD",
+    "Kyrgyzstan": "с",
+    "Laos": "₭",
+    "Latvia": "€",
+    "Lebanon": "ل.ل",
+    "Lesotho": "L",
+    "Liberia": "L$",
+    "Libya": "ل.د",
+    "Liechtenstein": "CHF",
+    "Lithuania": "€",
+    "Luxembourg": "€",
+    "Madagascar": "Ar",
+    "Malawi": "MK",
+    "Malaysia": "RM",
+    "Maldives": "Rf",
+    "Mali": "CFA",
+    "Malta": "€",
+    "Marshall Islands": "$",
+    "Mauritania": "UM",
+    "Mauritius": "₨",
+    "Mexico": "Mex$",
+    "Micronesia": "$",
+    "Moldova": "L",
+    "Monaco": "€",
+    "Mongolia": "₮",
+    "Montenegro": "€",
+    "Morocco": "MAD",
+    "Mozambique": "MTn",
+    "Myanmar": "K",
+    "Namibia": "N$",
+    "Nauru": "A$",
+    "Nepal": "₨",
+    "Netherlands": "€",
+    "New Zealand": "NZ$",
+    "Nicaragua": "C$",
+    "Niger": "CFA",
+    "Nigeria": "₦",
+    "North Korea": "₩",
+    "North Macedonia": "ден",
+    "Norway": "kr",
+    "Oman": "﷼",
+    "Pakistan": "₨",
+    "Palau": "$",
+    "Palestine": "₪",
+    "Panama": "$",
+    "Papua New Guinea": "K",
+    "Paraguay": "₲",
+    "Peru": "S/.",
+    "Philippines": "₱",
+    "Poland": "zł",
+    "Portugal": "€",
+    "Qatar": "﷼",
+    "Romania": "lei",
+    "Russia": "₽",
+    "Rwanda": "FRw",
+    "Saint Kitts and Nevis": "EC$",
+    "Saint Lucia": "EC$",
+    "Saint Vincent and the Grenadines": "EC$",
+    "Samoa": "WS$",
+    "San Marino": "€",
+    "São Tomé and Príncipe": "Db",
+    "Saudi Arabia": "﷼",
+    "Senegal": "CFA",
+    "Serbia": "дин",
+    "Seychelles": "₨",
+    "Sierra Leone": "Le",
+    "Singapore": "S$",
+    "Slovakia": "€",
+    "Slovenia": "€",
+    "Solomon Islands": "SI$",
+    "Somalia": "Sh.So.",
+    "South Africa": "R",
+    "South Korea": "₩",
+    "South Sudan": "£ss",
+    "Spain": "€",
+    "Sri Lanka": "Rs",
+    "Sudan": "ج.س",
+    "Suriname": "SRD",
+    "Sweden": "kr",
+    "Switzerland": "CHF",
+    "Syria": "£S",
+    "Taiwan": "NT$",
+    "Tajikistan": "SM",
+    "Tanzania": "TSh",
+    "Thailand": "฿",
+    "Timor-Leste": "$",
+    "Togo": "CFA",
+    "Tonga": "T$",
+    "Trinidad and Tobago": "TT$",
+    "Tunisia": "DT",
+    "Turkey": "₺",
+    "Turkmenistan": "T",
+    "Tuvalu": "A$",
+    "Uganda": "USh",
+    "Ukraine": "₴",
+    "United Arab Emirates": "د.إ",
+    "United Kingdom": "£",
+    "United States": "$",
+    "Uruguay": "$U",
+    "Uzbekistan": "лв",
+    "Vanuatu": "VT",
+    "Vatican City": "€",
+    "Venezuela": "Bs.S",
+    "Vietnam": "₫",
+    "Yemen": "﷼",
+    "Zambia": "ZK",
+    "Zimbabwe": "Z$"
+  }
+
   const CURRENCY_SYMBOL: Record<CurrencyCode | "DEFAULT", string> = {
     USD: "$",
     EUR: "€",
@@ -216,6 +415,16 @@ export function BusinessRequirementsForm() {
   const [countryName, setCountryName] = useState<string>("United States")
   const [currencyCode, setCurrencyCode] = useState<CurrencyCode | "DEFAULT">("USD")
   const [budget, setBudget] = useState<string>("")
+  const [customBudgetMin, setCustomBudgetMin] = useState<string>("")
+  const [customBudgetMax, setCustomBudgetMax] = useState<string>("")
+  const [budgetValidationError, setBudgetValidationError] = useState<string>("")
+  const [timeline, setTimeline] = useState<string>("4 weeks")
+  const [industryType, setIndustryType] = useState<string>("")
+  const [customIndustry, setCustomIndustry] = useState<string>("")
+  const [objectives, setObjectives] = useState<string[]>([])
+  const [customObjectives, setCustomObjectives] = useState<string[]>([])
+  const [showCustomObjective, setShowCustomObjective] = useState<boolean>(false)
+  const [customObjectiveInput, setCustomObjectiveInput] = useState<string>("")
   const [countryOpen, setCountryOpen] = useState(false)
   const [currencyLoading, setCurrencyLoading] = useState(false)
 
@@ -235,7 +444,7 @@ export function BusinessRequirementsForm() {
           countryCode: "US",
           countryName: "United States",
           budget: "$25K-50K",
-          timelineMonthsFromNow: 4,
+          timeline: "4 weeks",
           industryType: "E-commerce & Retail",
           objectives: ["Improve User Experience", "Increase Conversion", "Reduce Operational Costs"],
         },
@@ -253,7 +462,7 @@ export function BusinessRequirementsForm() {
           countryCode: "US",
           countryName: "United States",
           budget: "$10K-25K",
-          timelineMonthsFromNow: 3,
+          timeline: "3 weeks",
           industryType: "Technology",
           objectives: ["Launch MVP Quickly", "Integrate Existing Systems", "Improve User Experience"],
         },
@@ -262,7 +471,8 @@ export function BusinessRequirementsForm() {
     [],
   )
 
-  const currencySymbol = CURRENCY_SYMBOL[currencyCode || "DEFAULT"] || CURRENCY_SYMBOL.DEFAULT
+  // Get currency symbol from comprehensive country mapping, default to USD
+  const currencySymbol = COUNTRY_CURRENCY_SYMBOLS[countryName] || CURRENCY_SYMBOL[currencyCode] || CURRENCY_SYMBOL.USD
 
   const detectFromLocale = () => {
     try {
@@ -285,16 +495,15 @@ export function BusinessRequirementsForm() {
       if (found) {
         setCountryCode(storedCode)
         setCountryName(storedName)
-        setCurrencyCode(found.currencyCode === "DEFAULT" ? "USD" : found.currencyCode)
+        setCurrencyCode(found.currencyCode)
         return
       }
     }
-    const det = detectFromLocale()
-    const found = allCountries.find((c) => c.code === det.code)
-    setCountryCode(found?.code || "US")
-    setCountryName(found?.name || "United States")
-    setCurrencyCode(found?.currencyCode === "DEFAULT" ? "USD" : found?.currencyCode || "USD")
-  }, [allCountries.length])
+    // Always default to USD and United States on initial load
+    setCountryCode("US")
+    setCountryName("United States")
+    setCurrencyCode("USD")
+  }, [])
 
   useEffect(() => {
     const opts = (currencyCode && BUDGET_BY_CURRENCY[currencyCode]) || BUDGET_BY_CURRENCY.USD
@@ -306,28 +515,161 @@ export function BusinessRequirementsForm() {
   }, [currencyCode])
 
   const budgetOptions = useMemo(() => {
-    const opts = (currencyCode && BUDGET_BY_CURRENCY[currencyCode]) || BUDGET_BY_CURRENCY.USD
-    if (!opts) return []
-    if (currencyCode === "DEFAULT") {
-      return opts.map((o) => ({ ...o, label: `${o.label} (USD)` }))
+    // Use comprehensive currency symbol for budget options, default to USD
+    const symbol = COUNTRY_CURRENCY_SYMBOLS[countryName] || CURRENCY_SYMBOL[currencyCode] || CURRENCY_SYMBOL.USD
+    
+    // Generate budget options with the correct currency symbol
+    const baseOptions = [
+      { value: `${symbol}5K-10K`, label: `${symbol}5K-10K` },
+      { value: `${symbol}10K-25K`, label: `${symbol}10K-25K` },
+      { value: `${symbol}25K-50K`, label: `${symbol}25K-50K` },
+      { value: `${symbol}50K-100K`, label: `${symbol}50K-100K` },
+      { value: `${symbol}100K+`, label: `${symbol}100K+` },
+      { value: "CUSTOM", label: "Enter your own range" },
+    ]
+    
+    return baseOptions
+  }, [countryName, currencyCode])
+
+  // Weekly timeline options
+  const timelineOptions = useMemo(() => {
+    const options = []
+    for (let i = 1; i <= 15; i++) {
+      options.push({
+        value: `${i} week${i === 1 ? '' : 's'}`,
+        label: `${i} week${i === 1 ? '' : 's'}`
+      })
     }
-    return opts
-  }, [currencyCode])
+    return options
+  }, [])
 
   const flagUrl = `https://flagcdn.com/${countryCode.toLowerCase()}.svg`
+
+  // Validation for custom budget inputs
+  const validateCustomBudget = (min: string, max: string) => {
+    if (!min || !max) {
+      setBudgetValidationError("")
+      return true
+    }
+    
+    const minNum = parseFloat(min)
+    const maxNum = parseFloat(max)
+    
+    if (isNaN(minNum) || isNaN(maxNum)) {
+      setBudgetValidationError("Please enter valid numbers")
+      return false
+    }
+    
+    if (minNum >= maxNum) {
+      setBudgetValidationError("Minimum must be less than maximum")
+      return false
+    }
+    
+    setBudgetValidationError("")
+    return true
+  }
+
+  // Handle custom budget input changes
+  const handleCustomBudgetChange = (field: 'min' | 'max', value: string) => {
+    // Only allow numbers and decimal point
+    const sanitized = value.replace(/[^0-9.]/g, '')
+    
+    if (field === 'min') {
+      setCustomBudgetMin(sanitized)
+      validateCustomBudget(sanitized, customBudgetMax)
+    } else {
+      setCustomBudgetMax(sanitized)
+      validateCustomBudget(customBudgetMin, sanitized)
+    }
+  }
+
+  // Handle budget selection
+  const handleBudgetChange = (value: string) => {
+    setBudget(value)
+    if (value !== "CUSTOM") {
+      setCustomBudgetMin("")
+      setCustomBudgetMax("")
+      setBudgetValidationError("")
+    }
+  }
+
+  // Handle industry type selection
+  const handleIndustryChange = (value: string) => {
+    setIndustryType(value)
+    if (value !== "Other") {
+      setCustomIndustry("")
+    }
+  }
+
+  // Handle objective selection
+  const handleObjectiveChange = (objective: string, checked: boolean) => {
+    if (objective === "Other") {
+      setShowCustomObjective(checked)
+      if (!checked) {
+        setCustomObjectives([])
+        setCustomObjectiveInput("")
+      }
+    } else {
+      setObjectives(prev => 
+        checked 
+          ? [...prev, objective]
+          : prev.filter(obj => obj !== objective)
+      )
+    }
+  }
+
+  // Handle adding custom objective
+  const handleAddCustomObjective = () => {
+    if (customObjectiveInput.trim()) {
+      setCustomObjectives(prev => [...prev, customObjectiveInput.trim()])
+      setCustomObjectiveInput("")
+    }
+  }
+
+  // Handle removing custom objective
+  const handleRemoveCustomObjective = (objective: string) => {
+    setCustomObjectives(prev => prev.filter(obj => obj !== objective))
+  }
 
   const handleCountrySelect = (nextCode: string) => {
     const found = allCountries.find((c) => c.code === nextCode)
     if (!found) return
+    
     setCountryOpen(false)
     setCurrencyLoading(true)
+    
+    // Update country information immediately
     setCountryCode(found.code)
     setCountryName(found.name)
-    setCurrencyCode(found.currencyCode === "DEFAULT" ? "USD" : found.currencyCode)
+    
+    // Update currency immediately
+    const newCurrencyCode = found.currencyCode
+    const oldCurrencyCode = currencyCode
+    setCurrencyCode(newCurrencyCode)
+    
+    // Save to session storage
     sessionStorage.setItem("brf_country_code", found.code)
     sessionStorage.setItem("brf_country_name", found.name)
-    setTimeout(() => setCurrencyLoading(false), 250)
+    
+    // Reset budget selection when currency changes
+    setBudget("")
+    setCustomBudgetMin("")
+    setCustomBudgetMax("")
+    setBudgetValidationError("")
+    
+    // Show currency change notification if currency actually changed
+    if (oldCurrencyCode !== newCurrencyCode) {
+      const newSymbol = COUNTRY_CURRENCY_SYMBOLS[found.name] || CURRENCY_SYMBOL[newCurrencyCode] || CURRENCY_SYMBOL.DEFAULT
+      toast({
+        title: "Currency Updated",
+        description: `Budget ranges now display in ${newCurrencyCode} ${newSymbol}`,
+      })
+    }
+    
+    // Brief loading state for smooth UX
+    setTimeout(() => setCurrencyLoading(false), 200)
   }
+
 
   function dateMonthsFromNow(months: number): string {
     const d = new Date()
@@ -359,7 +701,7 @@ export function BusinessRequirementsForm() {
     }
   }
 
-  function setObjectives(values: string[]) {
+  function setObjectivesFromTestData(values: string[]) {
     const boxes = Array.from(formRef.current?.querySelectorAll('input[name="objectives"]') || []) as HTMLInputElement[]
     boxes.forEach((box) => {
       box.checked = values.includes(box.value)
@@ -400,9 +742,15 @@ export function BusinessRequirementsForm() {
       }
     }, 360)
 
-    step(() => setInputValue("#timeline", dateMonthsFromNow(s.timelineMonthsFromNow)))
-    step(() => setInputValue("#industryType", s.industryType))
-    step(() => setObjectives(s.objectives), 180)
+    step(() => setTimeline(s.timeline))
+    step(() => setIndustryType(s.industryType))
+    step(() => {
+      setObjectives(s.objectives)
+      setCustomObjectives([])
+      setShowCustomObjective(false)
+      setCustomObjectiveInput("")
+      setObjectivesFromTestData(s.objectives)
+    }, 180)
 
     step(() => {
       toast({ title: "Test data loaded!", description: `Scenario: ${scenarios[scenarioIndex].name}` })
@@ -418,7 +766,6 @@ export function BusinessRequirementsForm() {
       "#clientCompany",
       "#clientEmail",
       "#projectDescription",
-      "#timeline",
     ]
     fields.forEach((sel, i) =>
       setTimeout(() => {
@@ -426,9 +773,17 @@ export function BusinessRequirementsForm() {
       }, i * 60),
     )
 
-    setTimeout(() => setObjectives([]), 100)
+    setTimeout(() => {
+      setObjectives([])
+      setCustomObjectives([])
+      setShowCustomObjective(false)
+      setCustomObjectiveInput("")
+    }, 100)
 
-    setTimeout(() => setInputValue("#industryType", ""), 120)
+    setTimeout(() => {
+      setIndustryType("")
+      setCustomIndustry("")
+    }, 120)
 
     setTimeout(() => {
       const det = detectFromLocale()
@@ -437,6 +792,10 @@ export function BusinessRequirementsForm() {
 
     setTimeout(() => {
       setBudget("")
+      setCustomBudgetMin("")
+      setCustomBudgetMax("")
+      setBudgetValidationError("")
+      setTimeline("4 weeks")
       const el = formRef.current?.querySelector("#budgetRange") as HTMLSelectElement | null
       if (el) {
         el.value = ""
@@ -477,10 +836,60 @@ export function BusinessRequirementsForm() {
         projectDescription: formData.get('projectDescription') as string,
         countryCode,
         countryName,
-        budgetRange: budget,
-        timeline: formData.get('timeline') as string,
-        industryType: formData.get('industryType') as string,
-        objectives: formData.getAll('objectives') as string[]
+        budgetRange: budget === "CUSTOM" ? `${currencySymbol}${customBudgetMin}-${currencySymbol}${customBudgetMax}` : budget,
+        timeline: timeline,
+        industryType: industryType === "Other" ? customIndustry : industryType,
+        objectives: [...objectives, ...customObjectives]
+      }
+
+      // Validate custom budget if selected
+      if (budget === "CUSTOM") {
+        if (!customBudgetMin || !customBudgetMax) {
+          toast({
+            title: "Validation Error",
+            description: "Please enter both minimum and maximum budget values",
+            variant: "destructive"
+          })
+          setSubmitting(false)
+          return
+        }
+        
+        if (budgetValidationError) {
+          toast({
+            title: "Validation Error",
+            description: budgetValidationError,
+            variant: "destructive"
+          })
+          setSubmitting(false)
+          return
+        }
+      }
+
+      // Validate custom industry if selected
+      if (industryType === "Other") {
+        if (!customIndustry.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "Please enter your industry type",
+            variant: "destructive"
+          })
+          setSubmitting(false)
+          return
+        }
+      }
+
+      // Validate required fields
+      const requiredFields = ['companyName', 'projectTitle', 'clientName', 'projectDescription', 'budgetRange', 'timeline', 'industryType']
+      const missingFields = requiredFields.filter(field => !requirements[field as keyof typeof requirements])
+      
+      if (missingFields.length > 0) {
+        toast({
+          title: "Validation Error",
+          description: `Please fill in all required fields: ${missingFields.join(', ')}`,
+          variant: "destructive"
+        })
+        setSubmitting(false)
+        return
       }
 
       // Call API to process requirements and generate executive summary
@@ -514,7 +923,7 @@ export function BusinessRequirementsForm() {
       console.error('Error submitting requirements:', error)
       toast({ 
         title: "Error", 
-        description: error.message || "Failed to submit requirements. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit requirements. Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -681,6 +1090,9 @@ export function BusinessRequirementsForm() {
                           />
                           <span>{c.name}</span>
                           <span className="ml-2 text-xs text-slate-500">{c.code}</span>
+                          <span className="ml-auto text-xs text-slate-400">
+                            {CURRENCY_SYMBOL[c.currencyCode === "DEFAULT" ? "USD" : c.currencyCode]} {c.currencyCode === "DEFAULT" ? "USD" : c.currencyCode}
+                          </span>
                         </div>
                       </CommandItem>
                     ))}
@@ -696,9 +1108,18 @@ export function BusinessRequirementsForm() {
             <label htmlFor="budgetRange" className="text-sm font-medium text-slate-700">
               Budget Range
             </label>
-            <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-              {currencyCode === "DEFAULT" ? "USD" : currencyCode} {currencySymbol}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                currencyLoading 
+                  ? "bg-blue-100 text-blue-600" 
+                  : "bg-blue-50 text-blue-700"
+              }`}>
+                {currencyCode} {currencySymbol}
+              </span>
+              {currencyLoading && (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              )}
+            </div>
           </div>
           <div className={currencyLoading ? "opacity-50 transition-opacity" : "transition-opacity"}>
             <select
@@ -706,9 +1127,9 @@ export function BusinessRequirementsForm() {
               name="budgetRange"
               required
               value={budget}
-              onChange={(e) => setBudget(e.target.value)}
+              onChange={(e) => handleBudgetChange(e.target.value)}
               disabled={currencyLoading}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-slate-50"
             >
               <option value="">Select a budget</option>
               {budgetOptions.map((opt) => (
@@ -718,6 +1139,69 @@ export function BusinessRequirementsForm() {
               ))}
             </select>
           </div>
+
+          {/* Custom Budget Input Fields */}
+          {budget === "CUSTOM" && (
+            <div className="mt-3 space-y-3 p-4 bg-slate-50 rounded-md border border-slate-200">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-medium text-slate-700">Custom Budget Range</span>
+                <span className="text-xs text-slate-500">({currencySymbol})</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="customBudgetMin" className="block text-xs font-medium text-slate-600 mb-1">
+                    Minimum Budget
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 text-sm">
+                      {currencySymbol}
+                    </span>
+                    <input
+                      type="text"
+                      id="customBudgetMin"
+                      value={customBudgetMin}
+                      onChange={(e) => handleCustomBudgetChange('min', e.target.value)}
+                      placeholder="Enter minimum"
+                      className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="customBudgetMax" className="block text-xs font-medium text-slate-600 mb-1">
+                    Maximum Budget
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 text-sm">
+                      {currencySymbol}
+                    </span>
+                    <input
+                      type="text"
+                      id="customBudgetMax"
+                      value={customBudgetMax}
+                      onChange={(e) => handleCustomBudgetChange('max', e.target.value)}
+                      placeholder="Enter maximum"
+                      className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {budgetValidationError && (
+                <div className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                  {budgetValidationError}
+                </div>
+              )}
+              
+              {customBudgetMin && customBudgetMax && !budgetValidationError && (
+                <div className="text-sm text-green-600 bg-green-50 p-2 rounded border border-green-200">
+                  ✓ Custom range: {currencySymbol}{customBudgetMin} - {currencySymbol}{customBudgetMax}
+                </div>
+              )}
+            </div>
+          )}
+          
           {currencyLoading && (
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
@@ -730,13 +1214,21 @@ export function BusinessRequirementsForm() {
           <label htmlFor="timeline" className="text-sm font-medium text-slate-700">
             Timeline
           </label>
-          <input
+          <select
             id="timeline"
             name="timeline"
-            type="date"
             required
+            value={timeline}
+            onChange={(e) => setTimeline(e.target.value)}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          />
+          >
+            <option value="">Select timeline</option>
+            {timelineOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex flex-col gap-2 md:col-span-3">
@@ -747,6 +1239,8 @@ export function BusinessRequirementsForm() {
             id="industryType"
             name="industryType"
             required
+            value={industryType}
+            onChange={(e) => handleIndustryChange(e.target.value)}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
             <option value="">Select an industry</option>
@@ -758,6 +1252,24 @@ export function BusinessRequirementsForm() {
             <option>Education</option>
             <option>Other</option>
           </select>
+
+          {/* Custom Industry Input Field */}
+          {industryType === "Other" && (
+            <div className="mt-2">
+              <label htmlFor="customIndustry" className="block text-sm font-medium text-slate-700 mb-1">
+                Specify Industry Type
+              </label>
+              <input
+                type="text"
+                id="customIndustry"
+                name="customIndustry"
+                value={customIndustry}
+                onChange={(e) => setCustomIndustry(e.target.value)}
+                placeholder="Enter your industry type"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -771,16 +1283,71 @@ export function BusinessRequirementsForm() {
             "Launch MVP Quickly",
             "Integrate Existing Systems",
             "Enhance Brand Presence",
+            "Other",
           ].map((label) => (
             <label
               key={label}
               className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:border-blue-600"
             >
-              <input type="checkbox" name="objectives" value={label} className="h-4 w-4 accent-blue-600" />
+              <input 
+                type="checkbox" 
+                name="objectives" 
+                value={label} 
+                className="h-4 w-4 accent-blue-600"
+                checked={label === "Other" ? showCustomObjective : objectives.includes(label)}
+                onChange={(e) => handleObjectiveChange(label, e.target.checked)}
+              />
               <span>{label}</span>
             </label>
           ))}
         </div>
+
+        {/* Custom Objectives Section */}
+        {showCustomObjective && (
+          <div className="mt-4 p-4 bg-slate-50 rounded-md border border-slate-200">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-medium text-slate-700">Add Custom Objectives</span>
+            </div>
+            
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={customObjectiveInput}
+                onChange={(e) => setCustomObjectiveInput(e.target.value)}
+                placeholder="Enter your key objective"
+                className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCustomObjective()}
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomObjective}
+                disabled={!customObjectiveInput.trim()}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                Add
+              </button>
+            </div>
+
+            {/* Display custom objectives */}
+            {customObjectives.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-slate-600">Custom Objectives:</span>
+                {customObjectives.map((objective, index) => (
+                  <div key={index} className="flex items-center justify-between bg-white border border-slate-200 rounded-md px-3 py-2">
+                    <span className="text-sm text-slate-700">{objective}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCustomObjective(objective)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </fieldset>
 
       <div className="flex items-center justify-end gap-3">

@@ -187,22 +187,35 @@ export default function ContentIndexPage() {
         setCurrentProposal(proposal)
         
         // Auto-select executive summary if it exists
-        if (proposal.sections['executive-summary']) {
+        if (proposal.sections && proposal.sections['executive-summary']) {
           setSelected(new Set(['executive-summary']))
         }
+      } else {
+        // If no proposal data exists, redirect to requirements page
+        window.location.href = '/requirements'
       }
     } catch (error) {
       console.error('Error loading proposal data:', error)
+      // If there's an error parsing the data, redirect to requirements page
+      window.location.href = '/requirements'
     } finally {
       setLoading(false)
     }
   }, [])
 
   const handleToggle = (key: SectionKey) => {
+    console.log('🔄 handleToggle called for:', key)
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      const wasSelected = next.has(key)
+      if (wasSelected) {
+        next.delete(key)
+        console.log('❌ Removed from selection:', key)
+      } else {
+        next.add(key)
+        console.log('✅ Added to selection:', key)
+      }
+      console.log('📋 Current selection state:', Array.from(next))
       return next
     })
   }
@@ -221,12 +234,18 @@ export default function ContentIndexPage() {
       const content = currentProposal.sections['project-overview'].content
       const formattedContent = formatProjectOverviewContent(content)
       alert(`Project Overview Preview:\n\n${formattedContent}`)
+    } else if (section.key === 'key-value-propositions' && currentProposal?.sections['key-value-propositions']) {
+      const content = currentProposal.sections['key-value-propositions'].content
+      alert(`Key Value Propositions Preview:\n\n${content}`)
     } else if (section.key === 'executive-summary') {
       // Show fallback message for executive summary if not generated
       alert(`Executive Summary not yet generated. Please complete the requirements form first to automatically generate this section.`)
     } else if (section.key === 'project-overview') {
       // Show fallback message for project overview if not generated
       alert(`Project Overview not yet generated. Please complete the requirements form first to automatically generate this section.`)
+    } else if (section.key === 'key-value-propositions') {
+      // Show fallback message for key value propositions if not generated
+      alert(`Key Value Propositions not yet generated. Please complete the requirements form first to automatically generate this section.`)
     } else {
       // In a future iteration we can open a modal/sheet. For now, simple feedback.
       alert(`Preview for: ${section.title}\n\n${section.description}`)
@@ -234,22 +253,68 @@ export default function ContentIndexPage() {
   }
 
   const handleGenerate = () => {
+    console.log('🚀 handleGenerate called')
+    console.log('📊 Current selected state:', selected)
+    console.log('📋 selectedArray:', selectedArray)
+    console.log('🔢 Total sections available:', allSections.length)
+    console.log('✅ Selected count:', selected.size)
+    
+    // Validate that we have selections
+    if (selected.size === 0) {
+      console.log('❌ No sections selected!')
+      alert('Please select at least one section to generate content.')
+      return
+    }
+    
     // Store selected sections and navigate to content generation
     const selectedSections = selectedArray.map(key => {
       const section = allSections.find(s => s.key === key)
-      return {
+      const sectionData = {
         id: key,
         title: section?.title || key,
         content: currentProposal?.sections[key]?.content || '',
         status: currentProposal?.sections[key]?.status || 'Needs Review'
       }
+      console.log('📝 Processing section:', sectionData)
+      return sectionData
     })
     
+    console.log('💾 Storing selectedSections to localStorage:', selectedSections)
     localStorage.setItem('selectedSections', JSON.stringify(selectedSections))
     localStorage.setItem('companyName', currentProposal?.requirements?.companyName || 'Your Company')
     
+    // Verify what was stored
+    const stored = localStorage.getItem('selectedSections')
+    const parsedStored = JSON.parse(stored || '[]')
+    console.log('🔍 Verifying stored data:', parsedStored)
+    console.log('🔍 Stored section IDs:', parsedStored.map((s: any) => s.id))
+    
     // Navigate to content generation page
+    console.log('🔄 Navigating to content generation...')
     window.location.href = '/content-generation'
+  }
+
+  // Show loading state while checking for proposal data
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-8 font-sans">
+        <div className="mb-6">
+          <Breadcrumbs
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Requirements", href: "/requirements" },
+              { label: "Content Index", current: true },
+            ]}
+          />
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading proposal data...</p>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -314,7 +379,8 @@ export default function ContentIndexPage() {
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       {(section.key === 'executive-summary' && currentProposal?.sections['executive-summary']) || 
-                       (section.key === 'project-overview' && currentProposal?.sections['project-overview']) ? (
+                       (section.key === 'project-overview' && currentProposal?.sections['project-overview']) ||
+                       (section.key === 'key-value-propositions' && currentProposal?.sections['key-value-propositions']) ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
                           <span className="h-1.5 w-1.5 rounded-full bg-green-600"></span>
                           Generated
@@ -329,7 +395,8 @@ export default function ContentIndexPage() {
                         className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
                       >
                         {(section.key === 'executive-summary' && currentProposal?.sections['executive-summary']) || 
-                         (section.key === 'project-overview' && currentProposal?.sections['project-overview'])
+                         (section.key === 'project-overview' && currentProposal?.sections['project-overview']) ||
+                         (section.key === 'key-value-propositions' && currentProposal?.sections['key-value-propositions'])
                           ? 'Preview Generated' 
                           : 'Preview Sample'
                         }
@@ -358,6 +425,21 @@ export default function ContentIndexPage() {
                 className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
               >
                 Deselect All
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  console.log('🧪 DEBUG: Current selection state:', Array.from(selected))
+                  console.log('🧪 DEBUG: Selected sections:', selectedArray)
+                  console.log('🧪 DEBUG: Checkbox states:', allSections.map(s => ({
+                    key: s.key,
+                    title: s.title,
+                    checked: selected.has(s.key)
+                  })))
+                }}
+                className="rounded-md border border-orange-300 bg-orange-50 px-4 py-2 text-sm text-orange-700 hover:bg-orange-100"
+              >
+                Debug Selection
               </button>
               <button
                 type="button"

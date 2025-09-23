@@ -5,7 +5,8 @@ import type React from "react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { getCurrentProposal, updateProposalSection, regenerateExecutiveSummary, regenerateProjectOverview, regenerateTheProblem, regenerateOurSolution, formatProjectOverviewContent } from "@/lib/proposal-utils"
+import { getCurrentProposal, updateProposalSection, formatProjectOverviewContent, formatBenefitsAndROIContent } from "@/lib/proposal-utils"
+import { ScreenshotsSection } from "@/components/screenshots-section"
 
 type SectionStatus = "Generating" | "Complete" | "Needs Review"
 type Section = { id: string; title: string; content: string; status: SectionStatus }
@@ -107,12 +108,14 @@ function SectionListItem({
   onEditContent,
   onRegenerate,
   onDelete,
+  onUpdateStatus,
 }: {
   section: Section
   onEditTitle: (id: string, title: string) => void
   onEditContent: (id: string, content: string) => void
   onRegenerate: (id: string) => void
   onDelete: (id: string) => void
+  onUpdateStatus: (id: string, status: SectionStatus) => void
 }) {
   const [editingTitle, setEditingTitle] = useState(false)
   const [editingContent, setEditingContent] = useState(false)
@@ -123,6 +126,20 @@ function SectionListItem({
     setTitle(section.title)
     setContent(section.content)
   }, [section.title, section.content])
+
+  // Special handling for Screenshots section
+  if (section.id === 'screenshots') {
+    return (
+      <ScreenshotsSection
+        sectionId={section.id}
+        title={section.title}
+        content={section.content}
+        status={section.status}
+        onUpdateContent={(newContent) => onEditContent(section.id, newContent)}
+        onUpdateStatus={(newStatus) => onUpdateStatus(section.id, newStatus)}
+      />
+    )
+  }
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -166,6 +183,10 @@ function SectionListItem({
                 {section.id === 'project-overview' ? (
                   <div className="whitespace-pre-line text-xs">
                     {formatProjectOverviewContent(section.content) || "No content yet."}
+                  </div>
+                ) : section.id === 'benefits-and-roi' ? (
+                  <div className="whitespace-pre-line text-xs">
+                    {formatBenefitsAndROIContent(section.content) || "No content yet."}
                   </div>
                 ) : (
                   <p>{section.content || "No content yet."}</p>
@@ -282,6 +303,48 @@ function PreviewDocument({
               <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
                 {formatProjectOverviewContent(s.content) || "Content not available yet."}
               </div>
+            ) : s.id === 'key-value-propositions' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+                {s.content || "Content not available yet."}
+              </div>
+            ) : s.id === 'benefits-and-roi' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+                {formatBenefitsAndROIContent(s.content) || "Content not available yet."}
+              </div>
+            ) : s.id === 'screenshots' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700">
+                <p className="mb-4">{s.content || "Content not available yet."}</p>
+                {/* Show screenshots from localStorage if available */}
+                {(() => {
+                  try {
+                    const stored = localStorage.getItem(`screenshots_${s.id}`)
+                    if (stored) {
+                      const screenshots = JSON.parse(stored)
+                      if (screenshots.length > 0) {
+                        return (
+                          <div className="space-y-4">
+                            {screenshots.map((img: any, idx: number) => (
+                              <div key={img.id} className="border border-slate-200 rounded-lg p-4">
+                                <img
+                                  src={img.url}
+                                  alt={img.caption || img.name}
+                                  className="w-full max-w-2xl h-auto rounded-md shadow-sm"
+                                />
+                                {img.caption && (
+                                  <p className="mt-2 text-xs text-slate-600 italic">{img.caption}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error loading screenshots for preview:', error)
+                  }
+                  return null
+                })()}
+              </div>
             ) : (
               <p className="mt-2 text-sm leading-6 text-slate-700">{s.content || "Content not available yet."}</p>
             )}
@@ -298,52 +361,156 @@ export default function ContentGenerationPage() {
   const [companyName, setCompanyName] = useState("Your Company")
   const fileRef = useRef<HTMLInputElement | null>(null)
 
-  // Load from previous step (if any)
+  // Load and process selected sections in a single useEffect
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("selectedSections")
-      const company = localStorage.getItem("companyName")
-      const proposalRaw = localStorage.getItem("currentProposal")
-      
-      if (company) setCompanyName(company)
-      
-      if (raw) {
-        const parsed = JSON.parse(raw) as Array<Partial<Section> & { title: string }>
-        const normalized: Section[] = parsed.map((p) => ({
-          id: p.id || uid("sec"),
-          title: p.title || "Untitled Section",
-          content: (p as any).content || "Initial draft in progress. Use Edit or Regenerate to refine.",
-          status: (p.status as SectionStatus) || "Needs Review",
-        }))
-        setSections(normalized.length ? normalized : SAMPLE_SECTIONS)
-      } else {
+    const loadAndProcessSections = async () => {
+      console.log('🔄 Content Generation Page: Loading and processing data...')
+      try {
+        const raw = localStorage.getItem("selectedSections")
+        const company = localStorage.getItem("companyName")
+        const proposalRaw = localStorage.getItem("currentProposal")
+        
+        console.log('📋 Raw selectedSections from localStorage:', raw)
+        console.log('🏢 Company name:', company)
+        console.log('📄 Proposal data exists:', !!proposalRaw)
+        
+        if (company) setCompanyName(company)
+        
+        // If we have selected sections and proposal data, process them
+        if (raw && proposalRaw) {
+          const selectedSections = JSON.parse(raw)
+          const proposal = JSON.parse(proposalRaw)
+          
+          console.log('✅ Parsed selectedSections:', selectedSections)
+          console.log('📊 Selected sections count:', selectedSections.length)
+          console.log('🔍 Selected section IDs:', selectedSections.map((s: any) => s.id))
+          
+          // Create initial sections from selected sections
+          const initialSections: Section[] = selectedSections.map((section: any) => ({
+            id: section.id,
+            title: section.title,
+            content: section.content || "Initial draft in progress. Use Edit or Regenerate to refine.",
+            status: (section.status as SectionStatus) || "Needs Review",
+          }))
+          
+          console.log('📝 Initial sections created:', initialSections.map(s => ({ id: s.id, title: s.title, status: s.status })))
+          setSections(initialSections)
+          
+          // Check if we need to generate content for selected sections
+          const needsGeneration = selectedSections.some((section: any) => 
+            !proposal?.sections?.[section.id] || 
+            proposal.sections[section.id].status !== 'Complete'
+          )
+          
+          console.log('🔄 Needs generation:', needsGeneration)
+          console.log('📋 Proposal requirements exist:', !!proposal?.requirements)
+          
+          if (needsGeneration && proposal?.requirements) {
+            // Set all selected sections to "Generating" status
+            console.log('🔄 Setting sections to "Generating" status...')
+            setSections(prev => prev.map(section => {
+              const isSelected = selectedSections.some((s: any) => s.id === section.id)
+              if (isSelected) {
+                console.log('⚡ Setting to generating:', section.id)
+                return { ...section, status: "Generating" }
+              }
+              return section
+            }))
+            
+            // Call API to generate content for selected sections only
+            console.log('🌐 Calling API with selectedSections:', selectedSections)
+            const apiPayload = {
+              ...proposal.requirements,
+              selectedSections: selectedSections
+            }
+            console.log('📤 API payload:', apiPayload)
+            
+            const response = await fetch('/api/process-requirements', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(apiPayload),
+            })
+
+            console.log('📡 API response status:', response.status)
+            console.log('📡 API response ok:', response.ok)
+            
+            if (response.ok) {
+              const result = await response.json()
+              console.log('✅ API response:', result)
+              
+              if (result.success && result.data?.sections) {
+                console.log('📝 Generated sections:', Object.keys(result.data.sections))
+                console.log('📊 Generated sections data:', result.data.sections)
+                
+                // Update sections with generated content
+                setSections(prev => prev.map(section => {
+                  const generatedSection = result.data.sections[section.id]
+                  if (generatedSection) {
+                    console.log('✅ Updating section with generated content:', section.id)
+                    return {
+                      ...section,
+                      content: generatedSection.content,
+                      status: "Complete"
+                    }
+                  }
+                  return section
+                }))
+                
+                // Update the proposal data with generated content
+                const updatedProposal = {
+                  ...proposal,
+                  sections: {
+                    ...proposal.sections,
+                    ...result.data.sections
+                  }
+                }
+                localStorage.setItem('currentProposal', JSON.stringify(updatedProposal))
+                console.log('💾 Updated proposal data in localStorage')
+              } else {
+                console.log('❌ API response missing success or sections data')
+              }
+            } else {
+              console.log('❌ API call failed with status:', response.status)
+              const errorText = await response.text()
+              console.log('❌ API error response:', errorText)
+              
+              // If API call fails, set sections to "Needs Review"
+              setSections(prev => prev.map(section => {
+                const isSelected = selectedSections.some((s: any) => s.id === section.id)
+                if (isSelected) {
+                  console.log('⚠️ Setting to needs review:', section.id)
+                  return { ...section, status: "Needs Review" }
+                }
+                return section
+              }))
+            }
+          } else {
+            console.log('ℹ️ No generation needed - sections already complete or no requirements')
+          }
+        } else if (raw) {
+          // Fallback to saved sections if no proposal data
+          console.log('📋 Loading saved sections without proposal data')
+          const parsed = JSON.parse(raw) as Array<Partial<Section> & { title: string }>
+          const normalized: Section[] = parsed.map((p) => ({
+            id: p.id || uid("sec"),
+            title: p.title || "Untitled Section",
+            content: (p as any).content || "Initial draft in progress. Use Edit or Regenerate to refine.",
+            status: (p.status as SectionStatus) || "Needs Review",
+          }))
+          setSections(normalized)
+        } else {
+          console.log('📋 No selected sections found, using sample sections')
+          setSections(SAMPLE_SECTIONS)
+        }
+      } catch (error) {
+        console.error('❌ Error loading and processing sections:', error)
         setSections(SAMPLE_SECTIONS)
       }
-      
-      // Load proposal data for additional context
-      if (proposalRaw) {
-        const proposal = JSON.parse(proposalRaw)
-        
-        // Check if we have pre-generated content for executive summary and project overview
-        if (proposal?.sections['executive-summary']) {
-          const executiveSummarySection = sections.find(s => s.id === 'executive-summary')
-          if (executiveSummarySection) {
-            executiveSummarySection.content = proposal.sections['executive-summary'].content
-            executiveSummarySection.status = 'Complete'
-          }
-        }
-        
-        if (proposal?.sections['project-overview']) {
-          const projectOverviewSection = sections.find(s => s.id === 'project-overview')
-          if (projectOverviewSection) {
-            projectOverviewSection.content = proposal.sections['project-overview'].content
-            projectOverviewSection.status = 'Complete'
-          }
-        }
-      }
-    } catch {
-      setSections(SAMPLE_SECTIONS)
     }
+    
+    loadAndProcessSections()
   }, [])
 
   // Persist updates for continuity
@@ -360,76 +527,139 @@ export default function ContentGenerationPage() {
   const onEditContent = (id: string, content: string) =>
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, content, status: "Needs Review" } : s)))
 
+  const onUpdateStatus = (id: string, status: SectionStatus) =>
+    setSections((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)))
+
+  // Generate content for generic sections
+  const generateGenericSectionContent = async (sectionId: string, requirements: any) => {
+    try {
+      const sectionTitle = sections.find(s => s.id === sectionId)?.title || 'Section'
+      
+      const response = await fetch('/api/process-requirements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...requirements,
+          sectionType: 'generic',
+          sectionTitle: sectionTitle
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate content')
+      }
+
+      const result = await response.json()
+      return result.data?.content || null
+    } catch (error) {
+      console.error('Error generating generic section content:', error)
+      return null
+    }
+  }
+
   const onRegenerate = async (id: string) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Generating" } : s)))
     
     try {
-      // Check if this is the executive summary, project overview, problem section, or solution section and we have proposal data
-      if (id === 'executive-summary' || id === 'project-overview' || id === 'the-problem' || id === 'our-solution') {
-        const proposal = getCurrentProposal()
-        if (proposal?.requirements) {
-          let newContent
-          
-          if (id === 'executive-summary') {
-            // Regenerate executive summary using Claude API
-            newContent = await regenerateExecutiveSummary(proposal.requirements)
-          } else if (id === 'project-overview') {
-            // Regenerate project overview using Claude API
-            newContent = await regenerateProjectOverview(proposal.requirements)
-          } else if (id === 'the-problem') {
-            // Regenerate the problem section using Claude API
-            newContent = await regenerateTheProblem(proposal.requirements)
-          } else if (id === 'our-solution') {
-            // Regenerate the solution section using Claude API
-            newContent = await regenerateOurSolution(proposal.requirements)
-          }
-          
-          if (newContent) {
-            setSections((prev) =>
-              prev.map((s) =>
-                s.id === id
-                  ? {
-                      ...s,
-                      content: newContent,
-                      status: "Complete",
-                    }
-                  : s,
-              ),
-            )
-            
-            // Update proposal data
-            updateProposalSection(id, {
-              content: newContent,
-              status: 'Complete',
-              version: (proposal.sections[id]?.version || 0) + 1
-            })
-            
-            return
-          }
+      const proposal = getCurrentProposal()
+      if (proposal?.requirements) {
+        let newContent
+        
+        // Generate content based on section type
+        const response = await fetch('/api/process-requirements', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...proposal.requirements,
+            sectionType: id,
+            regenerate: true
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to generate content')
         }
-      }
-      
-      // Fallback for other sections or if no proposal data
-      setTimeout(() => {
+
+        const result = await response.json()
+        
+        // Extract content based on section type
+        if (id === 'executive-summary') {
+          newContent = result.data?.sections?.['executive-summary']?.content
+        } else if (id === 'project-overview') {
+          newContent = result.data?.sections?.['project-overview']?.content
+        } else if (id === 'the-problem') {
+          newContent = result.data?.sections?.['the-problem']?.content
+        } else if (id === 'our-solution') {
+          newContent = result.data?.sections?.['our-solution']?.content
+        } else if (id === 'key-value-propositions') {
+          newContent = result.data?.sections?.['key-value-propositions']?.content
+        } else if (id === 'benefits-and-roi') {
+          newContent = result.data?.content
+        } else {
+          // For other sections, generate generic content
+          newContent = await generateGenericSectionContent(id, proposal.requirements)
+        }
+        
+        if (newContent) {
+          setSections((prev) =>
+            prev.map((s) =>
+              s.id === id
+                ? {
+                    ...s,
+                    content: newContent,
+                    status: "Complete",
+                  }
+                : s,
+            ),
+          )
+          
+          // Update proposal data
+          updateProposalSection(id, {
+            content: newContent,
+            status: 'Complete',
+            version: (proposal.sections[id]?.version || 0) + 1
+          })
+        } else {
+          setSections((prev) =>
+            prev.map((s) =>
+              s.id === id
+                ? {
+                    ...s,
+                    status: "Needs Review",
+                  }
+                : s,
+            ),
+          )
+        }
+      } else {
+        // No proposal data available, set to needs review
         setSections((prev) =>
           prev.map((s) =>
             s.id === id
               ? {
                   ...s,
-                  content:
-                    s.content && s.content.length
-                      ? s.content + " Refined for clarity and impact."
-                      : "Generated an initial draft based on your requirements.",
-                  status: "Complete",
+                  status: "Needs Review",
                 }
               : s,
           ),
         )
-      }, 900)
+      }
     } catch (error) {
       console.error('Error regenerating content:', error)
-      // Revert status on error
-      setSections((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Needs Review" } : s)))
+      setSections((prev) =>
+        prev.map((s) =>
+          s.id === id
+            ? {
+                ...s,
+                status: "Needs Review",
+              }
+            : s,
+        ),
+      )
       
       // Show error message
       alert(`Failed to regenerate content: ${error.message}`)
@@ -512,6 +742,7 @@ export default function ContentGenerationPage() {
                     onEditContent={onEditContent}
                     onRegenerate={onRegenerate}
                     onDelete={onDelete}
+                    onUpdateStatus={onUpdateStatus}
                   />
                 ))
               )}
