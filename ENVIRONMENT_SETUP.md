@@ -14,7 +14,7 @@ To enable AI-powered content generation, you need to configure your Claude API k
    - Create a `.env.local` file in the project root
    - Add your API key:
      ```
-     CLAUDE_API_KEY=YOUR_API_KEY"
+     CLAUDE_API_KEY="YOUR_API_KEY"
      ```
 
 3. **Restart the development server:**
