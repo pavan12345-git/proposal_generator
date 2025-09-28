@@ -14,12 +14,15 @@ To enable AI-powered content generation, you need to configure your Claude API k
    - Create a `.env.local` file in the project root
    - Add your API key:
      ```
-     CLAUDE_API_KEY="YOUR_API_KEY"
+     CLAUDE_API_KEY=sk-ant-your-actual-api-key-here
      ```
+   - **Important:** Replace `sk-ant-your-actual-api-key-here` with your actual API key from Anthropic Console
 
 3. **Restart the development server:**
    ```bash
    npm run dev
+   # or
+   pnpm dev
    ```
 
 ## Fallback Mode

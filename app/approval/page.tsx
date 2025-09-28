@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { parseMarkdownTable } from "@/lib/proposal-utils"
 
 // Colors used (5 total): Blue (primary), White, Slate gray (neutral), Green (success), Amber (review)
 
@@ -494,7 +495,14 @@ export default function ApprovalPage() {
                 {sections.map((s) => (
                   <section key={s.id} className="mb-6">
                     <h3 className="text-lg font-semibold text-slate-900">{s.title}</h3>
-                    <p className="text-slate-700 leading-relaxed mt-1">{s.content}</p>
+                    {s.id === 'additional-features-recommended' || s.id === 'operational-costs-monthly' || s.id === 'monthly-retainer-fee' ? (
+                      <div 
+                        className="text-slate-700 leading-relaxed mt-1" 
+                        dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content) }}
+                      />
+                    ) : (
+                      <p className="text-slate-700 leading-relaxed mt-1">{s.content}</p>
+                    )}
                   </section>
                 ))}
 

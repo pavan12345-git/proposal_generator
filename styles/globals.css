@@ -121,3 +121,315 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Professional table styling for proposal tables */
+.table-container {
+  @apply overflow-x-auto my-4;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border-radius: 0.5rem;
+  background: white;
+  display: inline-block;
+  width: 100%;
+}
+
+.proposal-table {
+  @apply w-full bg-white;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: 2px solid #333;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin: 0;
+  display: table;
+}
+
+/* Enhanced header styling */
+.proposal-table thead {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-bottom: 2px solid #333;
+}
+
+.proposal-table th {
+  @apply px-6 py-4 text-left font-bold text-white;
+  border: 1px solid #666;
+  font-size: 0.9rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  position: relative;
+}
+
+/* Enhanced cell styling with proper borders */
+.proposal-table td {
+  @apply px-6 py-4 text-slate-700;
+  border: 1px solid #666;
+  vertical-align: top;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  background: white;
+}
+
+/* Column width management */
+.proposal-table th:nth-child(1),
+.proposal-table td:nth-child(1) {
+  width: 25%;
+  min-width: 120px;
+}
+
+.proposal-table th:nth-child(2),
+.proposal-table td:nth-child(2) {
+  width: 50%;
+  min-width: 200px;
+}
+
+.proposal-table th:nth-child(3),
+.proposal-table td:nth-child(3) {
+  width: 25%;
+  min-width: 100px;
+  text-align: right;
+  font-weight: 600;
+  color: #059669;
+}
+
+/* Enhanced alternating row colors */
+.proposal-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.proposal-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+/* Hover effects */
+.proposal-table tbody tr:hover {
+  background-color: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+/* Professional typography enhancements */
+.proposal-table td:nth-child(1) {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.proposal-table td:nth-child(2) {
+  color: #475569;
+  line-height: 1.6;
+}
+
+.proposal-table td:nth-child(3) {
+  font-weight: 700;
+  color: #059669;
+  font-size: 0.9rem;
+}
+
+/* Enhanced borders and grid lines */
+.proposal-table {
+  border: 2px solid #333;
+  border-collapse: collapse;
+}
+
+.proposal-table thead tr {
+  border-bottom: 2px solid #333;
+}
+
+.proposal-table tbody tr {
+  border-bottom: none;
+}
+
+.proposal-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Additional Features Recommended table specific styling - HIGH SPECIFICITY */
+.table-container .proposal-table.table-border {
+  border: 2px solid #333 !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 0 !important;
+  background: white !important;
+}
+
+.table-container .proposal-table.table-border th,
+.table-container .proposal-table.table-border td {
+  border: 1px solid #666 !important;
+  border-collapse: collapse !important;
+  padding: 12px 16px !important;
+  vertical-align: top !important;
+}
+
+.table-container .proposal-table.table-border th {
+  border-bottom: 2px solid #333 !important;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  color: white !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.025em !important;
+  text-transform: uppercase !important;
+}
+
+.table-container .proposal-table.table-border td {
+  border: 1px solid #666 !important;
+  background: white !important;
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+}
+
+.table-container .proposal-table.table-border tbody tr:nth-child(even) td {
+  background-color: #f8fafc !important;
+}
+
+.table-container .proposal-table.table-border tbody tr:nth-child(odd) td {
+  background-color: #ffffff !important;
+}
+
+/* Ensure complete grid structure */
+.table-container .proposal-table.table-border thead tr {
+  border-bottom: 2px solid #333 !important;
+}
+
+.table-container .proposal-table.table-border tbody tr {
+  border-bottom: 1px solid #666 !important;
+}
+
+.table-container .proposal-table.table-border tbody tr:last-child {
+  border-bottom: 1px solid #666 !important;
+}
+
+/* Column width management for Additional Features table */
+.table-container .proposal-table.table-border th:nth-child(1),
+.table-container .proposal-table.table-border td:nth-child(1) {
+  width: 20% !important;
+  min-width: 120px !important;
+  text-align: left !important;
+}
+
+.table-container .proposal-table.table-border th:nth-child(2),
+.table-container .proposal-table.table-border td:nth-child(2) {
+  width: 60% !important;
+  min-width: 300px !important;
+  text-align: left !important;
+}
+
+.table-container .proposal-table.table-border th:nth-child(3),
+.table-container .proposal-table.table-border td:nth-child(3) {
+  width: 20% !important;
+  min-width: 120px !important;
+  text-align: right !important;
+  font-weight: 600 !important;
+  color: #059669 !important;
+}
+
+/* Monthly Retainer Fee table specific styling */
+.table-container .proposal-table.retainer-table th:nth-child(1),
+.table-container .proposal-table.retainer-table td:nth-child(1) {
+  width: 40% !important;
+  min-width: 150px !important;
+  text-align: left !important;
+}
+
+.table-container .proposal-table.retainer-table th:nth-child(2),
+.table-container .proposal-table.retainer-table td:nth-child(2) {
+  width: 25% !important;
+  min-width: 100px !important;
+  text-align: right !important;
+  font-weight: 600 !important;
+  color: #059669 !important;
+}
+
+.table-container .proposal-table.retainer-table th:nth-child(3),
+.table-container .proposal-table.retainer-table td:nth-child(3) {
+  width: 35% !important;
+  min-width: 200px !important;
+  text-align: left !important;
+  color: #334155 !important;
+  font-weight: normal !important;
+}
+
+/* Operational Costs table specific styling */
+.table-container .proposal-table.operational-table th:nth-child(1),
+.table-container .proposal-table.operational-table td:nth-child(1) {
+  width: 30% !important;
+  min-width: 120px !important;
+  text-align: left !important;
+}
+
+.table-container .proposal-table.operational-table th:nth-child(2),
+.table-container .proposal-table.operational-table td:nth-child(2) {
+  width: 25% !important;
+  min-width: 100px !important;
+  text-align: right !important;
+  font-weight: 600 !important;
+  color: #059669 !important;
+}
+
+.table-container .proposal-table.operational-table th:nth-child(3),
+.table-container .proposal-table.operational-table td:nth-child(3) {
+  width: 45% !important;
+  min-width: 200px !important;
+  text-align: left !important;
+  color: #334155 !important;
+  font-weight: normal !important;
+}
+
+/* Ensure table displays inline with content */
+.proposal-table,
+.table-container {
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Responsive design improvements */
+@media (max-width: 1024px) {
+  .proposal-table th,
+  .proposal-table td {
+    @apply px-4 py-3;
+  }
+  
+  .proposal-table {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-container {
+    @apply mx-2;
+  }
+  
+  .proposal-table {
+    font-size: 0.75rem;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .proposal-table th,
+  .proposal-table td {
+    @apply px-3 py-2;
+  }
+  
+  .proposal-table th {
+    font-size: 0.7rem;
+  }
+  
+  .proposal-table td:nth-child(3) {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .proposal-table th,
+  .proposal-table td {
+    @apply px-2 py-2;
+  }
+  
+  .proposal-table {
+    font-size: 0.7rem;
+  }
+  
+  .proposal-table th {
+    font-size: 0.65rem;
+  }
+}

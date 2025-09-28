@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { getCurrentProposal, updateProposalSection, formatProjectOverviewContent, formatBenefitsAndROIContent } from "@/lib/proposal-utils"
+import { getCurrentProposal, updateProposalSection, formatProjectOverviewContent, formatBenefitsAndROIContent, parseMarkdownTable } from "@/lib/proposal-utils"
 import { ScreenshotsSection } from "@/components/screenshots-section"
 
 type SectionStatus = "Generating" | "Complete" | "Needs Review"
@@ -188,6 +188,29 @@ function SectionListItem({
                   <div className="whitespace-pre-line text-xs">
                     {formatBenefitsAndROIContent(section.content) || "No content yet."}
                   </div>
+                ) : section.id === 'next-steps' ? (
+                  <div className="whitespace-pre-line text-xs">
+                    {section.content || "No content yet."}
+                  </div>
+                ) : section.id === 'one-time-development-cost' ? (
+                  <div className="whitespace-pre-line text-xs">
+                    {section.content || "No content yet."}
+                  </div>
+                ) : section.id === 'additional-features-recommended' ? (
+                  <div 
+                    className="text-xs" 
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownTable(section.content || "No content yet.") }}
+                  />
+                ) : section.id === 'operational-costs-monthly' ? (
+                  <div 
+                    className="text-xs" 
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownTable(section.content || "No content yet.") }}
+                  />
+                ) : section.id === 'monthly-retainer-fee' ? (
+                  <div 
+                    className="text-xs" 
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownTable(section.content || "No content yet.") }}
+                  />
                 ) : (
                   <p>{section.content || "No content yet."}</p>
                 )}
@@ -311,6 +334,29 @@ function PreviewDocument({
               <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
                 {formatBenefitsAndROIContent(s.content) || "Content not available yet."}
               </div>
+            ) : s.id === 'next-steps' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+                {s.content || "Content not available yet."}
+              </div>
+            ) : s.id === 'one-time-development-cost' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+                {s.content || "Content not available yet."}
+              </div>
+            ) : s.id === 'additional-features-recommended' ? (
+              <div 
+                className="mt-2 text-sm leading-6 text-slate-700" 
+                dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
+              />
+            ) : s.id === 'operational-costs-monthly' ? (
+              <div 
+                className="mt-2 text-sm leading-6 text-slate-700" 
+                dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
+              />
+            ) : s.id === 'monthly-retainer-fee' ? (
+              <div 
+                className="mt-2 text-sm leading-6 text-slate-700" 
+                dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
+              />
             ) : s.id === 'screenshots' ? (
               <div className="mt-2 text-sm leading-6 text-slate-700">
                 <p className="mb-4">{s.content || "Content not available yet."}</p>
@@ -559,6 +605,61 @@ export default function ContentGenerationPage() {
     }
   }
 
+  // Retry helper for transient API errors (429/529)
+  async function postWithRetry(url: string, body: any, maxAttempts = 3): Promise<Response> {
+    let attempt = 0
+    let lastError: any
+    let lastStatus: number | undefined
+    let lastStatusText: string | undefined
+    
+    while (attempt < maxAttempts) {
+      attempt++
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        
+        lastStatus = res.status
+        lastStatusText = res.statusText
+        
+        if (res.ok) return res
+        
+        // If rate limit or overload, backoff and retry
+        if (res.status === 429 || res.status === 529) {
+          console.log(`Attempt ${attempt}: ${res.status} ${res.statusText}, retrying...`)
+          const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+          await new Promise(r => setTimeout(r, backoffMs))
+          continue
+        }
+        
+        // For other non-ok statuses, try to get error details
+        try {
+          const errorData = await res.json()
+          console.log(`Attempt ${attempt}: ${res.status} ${res.statusText}`, errorData)
+        } catch {}
+        
+        return res
+      } catch (e) {
+        lastError = e
+        console.log(`Attempt ${attempt}: Network error`, e)
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+        await new Promise(r => setTimeout(r, backoffMs))
+      }
+    }
+    
+    // Build detailed error message
+    let details = ''
+    if (lastError instanceof Error) {
+      details = `: ${lastError.message}`
+    } else if (lastStatus) {
+      details = `: ${lastStatus} ${lastStatusText || ''}`
+    }
+    
+    throw new Error(`Request failed after ${maxAttempts} attempts${details}`)
+  }
+
   const onRegenerate = async (id: string) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Generating" } : s)))
     
@@ -568,20 +669,23 @@ export default function ContentGenerationPage() {
         let newContent
         
         // Generate content based on section type
-        const response = await fetch('/api/process-requirements', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...proposal.requirements,
-            sectionType: id,
-            regenerate: true
-          }),
+        const response = await postWithRetry('/api/process-requirements', {
+          ...proposal.requirements,
+          sectionType: id,
+          regenerate: true
         })
 
         if (!response.ok) {
-          throw new Error('Failed to generate content')
+          let errorMessage = 'Failed to generate content: Unknown error'
+          try {
+            const errorData = await response.json()
+            if (errorData?.error) {
+              errorMessage = errorData.error.includes('Claude API is currently overloaded')
+                ? 'The AI service is temporarily overloaded. Please wait a moment and try again.'
+                : errorData.error
+            }
+          } catch {}
+          throw new Error(errorMessage)
         }
 
         const result = await response.json()
@@ -598,6 +702,12 @@ export default function ContentGenerationPage() {
         } else if (id === 'key-value-propositions') {
           newContent = result.data?.sections?.['key-value-propositions']?.content
         } else if (id === 'benefits-and-roi') {
+          newContent = result.data?.content
+        } else if (id === 'next-steps') {
+          newContent = result.data?.content
+        } else if (id === 'one-time-development-cost') {
+          newContent = result.data?.content
+        } else if (id === 'additional-features-recommended') {
           newContent = result.data?.content
         } else {
           // For other sections, generate generic content
@@ -650,6 +760,11 @@ export default function ContentGenerationPage() {
       }
     } catch (error) {
       console.error('Error regenerating content:', error)
+      
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while generating content'
+      alert(errorMessage)
+      
       setSections((prev) =>
         prev.map((s) =>
           s.id === id
@@ -660,9 +775,6 @@ export default function ContentGenerationPage() {
             : s,
         ),
       )
-      
-      // Show error message
-      alert(`Failed to regenerate content: ${error.message}`)
     }
   }
 

@@ -418,9 +418,7 @@ export function BusinessRequirementsForm() {
   const [customBudgetMin, setCustomBudgetMin] = useState<string>("")
   const [customBudgetMax, setCustomBudgetMax] = useState<string>("")
   const [budgetValidationError, setBudgetValidationError] = useState<string>("")
-  const [timeline, setTimeline] = useState<string>("4 weeks")
-  const [industryType, setIndustryType] = useState<string>("")
-  const [customIndustry, setCustomIndustry] = useState<string>("")
+  const [timeline, setTimeline] = useState<string>("")
   const [objectives, setObjectives] = useState<string[]>([])
   const [customObjectives, setCustomObjectives] = useState<string[]>([])
   const [showCustomObjective, setShowCustomObjective] = useState<boolean>(false)
@@ -445,7 +443,6 @@ export function BusinessRequirementsForm() {
           countryName: "United States",
           budget: "$25K-50K",
           timeline: "4 weeks",
-          industryType: "E-commerce & Retail",
           objectives: ["Improve User Experience", "Increase Conversion", "Reduce Operational Costs"],
         },
       },
@@ -463,7 +460,6 @@ export function BusinessRequirementsForm() {
           countryName: "United States",
           budget: "$10K-25K",
           timeline: "3 weeks",
-          industryType: "Technology",
           objectives: ["Launch MVP Quickly", "Integrate Existing Systems", "Improve User Experience"],
         },
       },
@@ -593,13 +589,6 @@ export function BusinessRequirementsForm() {
     }
   }
 
-  // Handle industry type selection
-  const handleIndustryChange = (value: string) => {
-    setIndustryType(value)
-    if (value !== "Other") {
-      setCustomIndustry("")
-    }
-  }
 
   // Handle objective selection
   const handleObjectiveChange = (objective: string, checked: boolean) => {
@@ -743,7 +732,6 @@ export function BusinessRequirementsForm() {
     }, 360)
 
     step(() => setTimeline(s.timeline))
-    step(() => setIndustryType(s.industryType))
     step(() => {
       setObjectives(s.objectives)
       setCustomObjectives([])
@@ -781,8 +769,6 @@ export function BusinessRequirementsForm() {
     }, 100)
 
     setTimeout(() => {
-      setIndustryType("")
-      setCustomIndustry("")
     }, 120)
 
     setTimeout(() => {
@@ -838,7 +824,6 @@ export function BusinessRequirementsForm() {
         countryName,
         budgetRange: budget === "CUSTOM" ? `${currencySymbol}${customBudgetMin}-${currencySymbol}${customBudgetMax}` : budget,
         timeline: timeline,
-        industryType: industryType === "Other" ? customIndustry : industryType,
         objectives: [...objectives, ...customObjectives]
       }
 
@@ -865,21 +850,9 @@ export function BusinessRequirementsForm() {
         }
       }
 
-      // Validate custom industry if selected
-      if (industryType === "Other") {
-        if (!customIndustry.trim()) {
-          toast({
-            title: "Validation Error",
-            description: "Please enter your industry type",
-            variant: "destructive"
-          })
-          setSubmitting(false)
-          return
-        }
-      }
 
-      // Validate required fields
-      const requiredFields = ['companyName', 'projectTitle', 'clientName', 'projectDescription', 'budgetRange', 'timeline', 'industryType']
+      // Validate required fields (only project description)
+      const requiredFields = ['projectDescription']
       const missingFields = requiredFields.filter(field => !requirements[field as keyof typeof requirements])
       
       if (missingFields.length > 0) {
@@ -893,17 +866,38 @@ export function BusinessRequirementsForm() {
       }
 
       // Call API to process requirements and generate executive summary
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
+      
       const response = await fetch('/api/process-requirements', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requirements),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to process requirements')
+        console.error('API Error:', errorData)
+        
+        // Provide more specific error messages
+        if (errorData.error?.includes('Missing required fields')) {
+          throw new Error('Please fill in all required fields and try again.')
+        } else if (errorData.error?.includes('Claude API key not configured')) {
+          throw new Error('AI content generation is not configured. The form will work with sample data.')
+        } else if (errorData.error?.includes('Authentication failed')) {
+          throw new Error('AI service authentication failed. Please check your API configuration.')
+        } else if (errorData.error?.includes('Rate limit exceeded')) {
+          throw new Error('AI service is temporarily unavailable. Please try again in a few minutes.')
+        } else if (errorData.error?.includes('overloaded')) {
+          throw new Error('AI service is currently overloaded. The form will work with sample data.')
+        } else {
+          throw new Error(errorData.error || 'Failed to process requirements. Please try again.')
+        }
       }
 
       const result = await response.json()
@@ -912,18 +906,32 @@ export function BusinessRequirementsForm() {
       localStorage.setItem('currentProposal', JSON.stringify(result.data))
       
       // Show success message
+      const isUsingMockData = result.message?.includes('mock data') || result.message?.includes('not configured')
       toast({ 
         title: "Success!", 
-        description: "Requirements submitted and sections generated successfully." 
+        description: isUsingMockData 
+          ? "Requirements submitted successfully! (Using sample data - configure Claude API for AI-generated content)"
+          : "Requirements submitted and AI-generated sections created successfully!" 
       })
 
       // Navigate to content index
       router.push("/content-index")
     } catch (error) {
       console.error('Error submitting requirements:', error)
+      
+      let errorMessage = "Failed to submit requirements. Please try again."
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = "Request timed out. The AI service may be overloaded. Please try again in a few minutes."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({ 
         title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to submit requirements. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -941,7 +949,6 @@ export function BusinessRequirementsForm() {
           <input
             id="companyName"
             name="companyName"
-            required
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
             placeholder="Acme Corp"
           />
@@ -953,7 +960,6 @@ export function BusinessRequirementsForm() {
           <input
             id="projectTitle"
             name="projectTitle"
-            required
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
             placeholder="New Website Redesign"
           />
@@ -979,7 +985,6 @@ export function BusinessRequirementsForm() {
             <input
               id="clientName"
               name="clientName"
-              required
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
               placeholder="Jane Doe"
             />
@@ -1003,7 +1008,6 @@ export function BusinessRequirementsForm() {
               id="clientEmail"
               name="clientEmail"
               type="email"
-              required
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
               placeholder="jane@example.com"
             />
@@ -1229,47 +1233,6 @@ export function BusinessRequirementsForm() {
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="flex flex-col gap-2 md:col-span-3">
-          <label htmlFor="industryType" className="text-sm font-medium text-slate-700">
-            Industry Type
-          </label>
-          <select
-            id="industryType"
-            name="industryType"
-            required
-            value={industryType}
-            onChange={(e) => handleIndustryChange(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          >
-            <option value="">Select an industry</option>
-            <option>E-commerce & Retail</option>
-            <option>Technology</option>
-            <option>Healthcare</option>
-            <option>Finance</option>
-            <option>Retail</option>
-            <option>Education</option>
-            <option>Other</option>
-          </select>
-
-          {/* Custom Industry Input Field */}
-          {industryType === "Other" && (
-            <div className="mt-2">
-              <label htmlFor="customIndustry" className="block text-sm font-medium text-slate-700 mb-1">
-                Specify Industry Type
-              </label>
-              <input
-                type="text"
-                id="customIndustry"
-                name="customIndustry"
-                value={customIndustry}
-                onChange={(e) => setCustomIndustry(e.target.value)}
-                placeholder="Enter your industry type"
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              />
-            </div>
-          )}
         </div>
       </section>
 
