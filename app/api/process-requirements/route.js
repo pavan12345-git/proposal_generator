@@ -90,7 +90,7 @@ export async function POST(request) {
         console.log('Imported functions:', Object.keys(importedFunctions));
         console.log('generateAdditionalFeatures exists:', 'generateAdditionalFeatures' in importedFunctions);
         
-        const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateWithClaude } = importedFunctions;
+        const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline, generateWithClaude } = importedFunctions;
         
         let content;
       
@@ -134,6 +134,22 @@ export async function POST(request) {
         }
         content = await generateMonthlyRetainerFee(formData);
         console.log('✅ Generated monthly-retainer-fee successfully');
+      } else if (formData.sectionType === 'total-investment-from-client') {
+        console.log('🔄 Generating total-investment-from-client...');
+        console.log('Function exists:', typeof generateTotalInvestment);
+        if (typeof generateTotalInvestment !== 'function') {
+          throw new Error('generateTotalInvestment function not found');
+        }
+        content = await generateTotalInvestment(formData);
+        console.log('✅ Generated total-investment-from-client successfully');
+      } else if (formData.sectionType === 'implementation-timeline') {
+        console.log('🔄 Generating implementation-timeline...');
+        console.log('Function exists:', typeof generateImplementationTimeline);
+        if (typeof generateImplementationTimeline !== 'function') {
+          throw new Error('generateImplementationTimeline function not found');
+        }
+        content = await generateImplementationTimeline(formData);
+        console.log('✅ Generated implementation-timeline successfully');
       } else if (formData.sectionType === 'generic') {
         // Generate generic content for custom sections
         const prompt = `Generate content for a business proposal section titled "${formData.sectionTitle}" based on the following requirements:
@@ -203,7 +219,7 @@ Please generate professional, detailed content for this section that aligns with
       console.log('🎯 API: Processing selected sections request');
       console.log('📋 Selected sections received:', formData.selectedSections);
       
-      const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee } = await import('@/lib/claude-client');
+      const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline } = await import('@/lib/claude-client');
       
       const selectedSectionIds = formData.selectedSections.map(s => s.id);
       console.log('🔍 Selected section IDs:', selectedSectionIds);
@@ -255,6 +271,14 @@ Please generate professional, detailed content for this section that aligns with
         console.log('✅ Generating monthly-retainer-fee');
         sectionsToGenerate['monthly-retainer-fee'] = await generateMonthlyRetainerFee(formData);
       }
+      if (selectedSectionIds.includes('total-investment-from-client')) {
+        console.log('✅ Generating total-investment-from-client');
+        sectionsToGenerate['total-investment-from-client'] = await generateTotalInvestment(formData);
+      }
+      if (selectedSectionIds.includes('implementation-timeline')) {
+        console.log('✅ Generating implementation-timeline');
+        sectionsToGenerate['implementation-timeline'] = await generateImplementationTimeline(formData);
+      }
       
       console.log('📊 Sections to generate:', Object.keys(sectionsToGenerate));
       
@@ -280,7 +304,9 @@ Please generate professional, detailed content for this section that aligns with
           'one-time-development-cost': 'One Time Development Cost',
           'additional-features-recommended': 'Additional Features Recommended',
           'operational-costs-monthly': 'Operational Costs (Monthly)',
-          'monthly-retainer-fee': 'Monthly Retainer Fee'
+          'monthly-retainer-fee': 'Monthly Retainer Fee',
+          'total-investment-from-client': 'Total Investment from Client',
+          'implementation-timeline': 'Implementation Timeline'
         };
         
         proposalData.sections[sectionId] = {

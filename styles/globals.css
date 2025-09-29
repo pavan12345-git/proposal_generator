@@ -122,6 +122,190 @@
   }
 }
 
+/* Enhanced bullet point styling for all proposal content */
+.proposal-content {
+  /* Main bullet points - standard round bullets (•) */
+  ul li::marker {
+    font-size: 1.2em;
+    color: #1e293b;
+    font-weight: 600;
+  }
+  
+  /* Sub-bullet points - hyphens (-) */
+  ul ul li::marker {
+    font-size: 1.1em;
+    color: #475569;
+    font-weight: 500;
+  }
+  
+  /* Asterisk bullet points (*) */
+  ul li:has([data-bullet="asterisk"])::marker,
+  li:has([data-bullet="asterisk"])::marker {
+    font-size: 1.2em;
+    color: #1e293b;
+    font-weight: 600;
+  }
+}
+
+/* Specific bullet point styling for different content types */
+.proposal-content ul li,
+.proposal-content ol li {
+  font-size: 1em;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+/* Enhanced bullet point visibility */
+.proposal-content ul li::before {
+  content: "•";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Sub-bullet styling */
+.proposal-content ul ul li::before {
+  content: "-";
+  font-size: 1.1em;
+  color: #475569;
+  font-weight: 600;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+}
+
+/* Asterisk bullet styling */
+.proposal-content ul li:has([data-bullet="asterisk"])::before {
+  content: "*";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Benefits & ROI section specific styling */
+.benefits-roi-content ul li::before {
+  content: "•";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Development Cost section specific styling */
+.development-cost-content ul li::before {
+  content: "•";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+.development-cost-content ul ul li::before {
+  content: "-";
+  font-size: 1.1em;
+  color: #475569;
+  font-weight: 600;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+}
+
+/* Next Steps section specific styling */
+.next-steps-content ul li::before {
+  content: "•";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Project Overview section specific styling */
+.project-overview-content ul li::before {
+  content: "*";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Key Value Propositions section specific styling */
+.key-value-propositions-content ul li::before {
+  content: "*";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* General content area bullet point enhancement */
+.content-area ul li,
+.content-area ol li {
+  position: relative;
+  padding-left: 0;
+}
+
+.content-area ul li::before {
+  content: "•";
+  font-size: 1.2em;
+  color: #1e293b;
+  font-weight: 700;
+  position: absolute;
+  left: -1.5em;
+  top: 0;
+  width: 1.2em;
+  text-align: center;
+}
+
+.content-area ul ul li::before {
+  content: "-";
+  font-size: 1.1em;
+  color: #475569;
+  font-weight: 600;
+  position: absolute;
+  left: -1.3em;
+  top: 0;
+  width: 1.1em;
+  text-align: center;
+}
+
+/* Ensure proper spacing for all bullet types */
+.proposal-content ul,
+.proposal-content ol {
+  padding-left: 1.5em;
+  margin: 1rem 0;
+}
+
+.proposal-content ul ul,
+.proposal-content ol ol {
+  padding-left: 1.3em;
+  margin: 0.5rem 0;
+}
+
 /* Professional table styling for proposal tables */
 .table-container {
   @apply overflow-x-auto my-4;
@@ -299,23 +483,23 @@
   border-bottom: 1px solid #666 !important;
 }
 
-/* Column width management for Additional Features table */
-.table-container .proposal-table.table-border th:nth-child(1),
-.table-container .proposal-table.table-border td:nth-child(1) {
+/* Additional Features table specific styling */
+.table-container .proposal-table.additional-features-table th:nth-child(1),
+.table-container .proposal-table.additional-features-table td:nth-child(1) {
   width: 20% !important;
   min-width: 120px !important;
   text-align: left !important;
 }
 
-.table-container .proposal-table.table-border th:nth-child(2),
-.table-container .proposal-table.table-border td:nth-child(2) {
+.table-container .proposal-table.additional-features-table th:nth-child(2),
+.table-container .proposal-table.additional-features-table td:nth-child(2) {
   width: 60% !important;
   min-width: 300px !important;
   text-align: left !important;
 }
 
-.table-container .proposal-table.table-border th:nth-child(3),
-.table-container .proposal-table.table-border td:nth-child(3) {
+.table-container .proposal-table.additional-features-table th:nth-child(3),
+.table-container .proposal-table.additional-features-table td:nth-child(3) {
   width: 20% !important;
   min-width: 120px !important;
   text-align: right !important;
@@ -323,31 +507,6 @@
   color: #059669 !important;
 }
 
-/* Monthly Retainer Fee table specific styling */
-.table-container .proposal-table.retainer-table th:nth-child(1),
-.table-container .proposal-table.retainer-table td:nth-child(1) {
-  width: 40% !important;
-  min-width: 150px !important;
-  text-align: left !important;
-}
-
-.table-container .proposal-table.retainer-table th:nth-child(2),
-.table-container .proposal-table.retainer-table td:nth-child(2) {
-  width: 25% !important;
-  min-width: 100px !important;
-  text-align: right !important;
-  font-weight: 600 !important;
-  color: #059669 !important;
-}
-
-.table-container .proposal-table.retainer-table th:nth-child(3),
-.table-container .proposal-table.retainer-table td:nth-child(3) {
-  width: 35% !important;
-  min-width: 200px !important;
-  text-align: left !important;
-  color: #334155 !important;
-  font-weight: normal !important;
-}
 
 /* Operational Costs table specific styling */
 .table-container .proposal-table.operational-table th:nth-child(1),
@@ -370,6 +529,60 @@
 .table-container .proposal-table.operational-table td:nth-child(3) {
   width: 45% !important;
   min-width: 200px !important;
+  text-align: left !important;
+  color: #334155 !important;
+  font-weight: normal !important;
+}
+
+/* Total Investment table specific styling */
+.table-container .proposal-table.total-investment-table th:nth-child(1),
+.table-container .proposal-table.total-investment-table td:nth-child(1) {
+  width: 40% !important;
+  min-width: 150px !important;
+  text-align: left !important;
+}
+
+.table-container .proposal-table.total-investment-table th:nth-child(2),
+.table-container .proposal-table.total-investment-table td:nth-child(2) {
+  width: 25% !important;
+  min-width: 100px !important;
+  text-align: right !important;
+  font-weight: 600 !important;
+  color: #059669 !important;
+}
+
+.table-container .proposal-table.total-investment-table th:nth-child(3),
+.table-container .proposal-table.total-investment-table td:nth-child(3) {
+  width: 35% !important;
+  min-width: 200px !important;
+  text-align: left !important;
+  color: #334155 !important;
+  font-weight: normal !important;
+}
+
+/* Implementation Timeline table specific styling */
+.table-container .proposal-table.timeline-table th:nth-child(1),
+.table-container .proposal-table.timeline-table td:nth-child(1) {
+  width: 25% !important;
+  min-width: 120px !important;
+  text-align: left !important;
+  font-weight: 600 !important;
+  color: #1e40af !important;
+}
+
+.table-container .proposal-table.timeline-table th:nth-child(2),
+.table-container .proposal-table.timeline-table td:nth-child(2) {
+  width: 20% !important;
+  min-width: 80px !important;
+  text-align: center !important;
+  font-weight: 600 !important;
+  color: #059669 !important;
+}
+
+.table-container .proposal-table.timeline-table th:nth-child(3),
+.table-container .proposal-table.timeline-table td:nth-child(3) {
+  width: 55% !important;
+  min-width: 300px !important;
   text-align: left !important;
   color: #334155 !important;
   font-weight: normal !important;

@@ -211,6 +211,16 @@ function SectionListItem({
                     className="text-xs" 
                     dangerouslySetInnerHTML={{ __html: parseMarkdownTable(section.content || "No content yet.") }}
                   />
+                ) : section.id === 'total-investment-from-client' ? (
+                  <div 
+                    className="text-xs" 
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownTable(section.content || "No content yet.") }}
+                  />
+                ) : section.id === 'implementation-timeline' ? (
+                  <div 
+                    className="text-xs" 
+                    dangerouslySetInnerHTML={{ __html: parseMarkdownTable(section.content || "No content yet.") }}
+                  />
                 ) : (
                   <p>{section.content || "No content yet."}</p>
                 )}
@@ -323,23 +333,23 @@ function PreviewDocument({
               {i + 1}. {s.title}
             </h3>
             {s.id === 'project-overview' ? (
-              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line project-overview-content proposal-content">
                 {formatProjectOverviewContent(s.content) || "Content not available yet."}
               </div>
             ) : s.id === 'key-value-propositions' ? (
-              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line key-value-propositions-content proposal-content">
                 {s.content || "Content not available yet."}
               </div>
             ) : s.id === 'benefits-and-roi' ? (
-              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line benefits-roi-content proposal-content">
                 {formatBenefitsAndROIContent(s.content) || "Content not available yet."}
               </div>
             ) : s.id === 'next-steps' ? (
-              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line next-steps-content proposal-content">
                 {s.content || "Content not available yet."}
               </div>
             ) : s.id === 'one-time-development-cost' ? (
-              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line">
+              <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line development-cost-content proposal-content">
                 {s.content || "Content not available yet."}
               </div>
             ) : s.id === 'additional-features-recommended' ? (
@@ -353,6 +363,16 @@ function PreviewDocument({
                 dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
               />
             ) : s.id === 'monthly-retainer-fee' ? (
+              <div 
+                className="mt-2 text-sm leading-6 text-slate-700" 
+                dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
+              />
+            ) : s.id === 'total-investment-from-client' ? (
+              <div 
+                className="mt-2 text-sm leading-6 text-slate-700" 
+                dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
+              />
+            ) : s.id === 'implementation-timeline' ? (
               <div 
                 className="mt-2 text-sm leading-6 text-slate-700" 
                 dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}

@@ -495,13 +495,33 @@ export default function ApprovalPage() {
                 {sections.map((s) => (
                   <section key={s.id} className="mb-6">
                     <h3 className="text-lg font-semibold text-slate-900">{s.title}</h3>
-                    {s.id === 'additional-features-recommended' || s.id === 'operational-costs-monthly' || s.id === 'monthly-retainer-fee' ? (
+                    {s.id === 'additional-features-recommended' || s.id === 'operational-costs-monthly' || s.id === 'monthly-retainer-fee' || s.id === 'total-investment-from-client' || s.id === 'implementation-timeline' ? (
                       <div 
                         className="text-slate-700 leading-relaxed mt-1" 
                         dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content) }}
                       />
+                    ) : s.id === 'project-overview' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 project-overview-content proposal-content whitespace-pre-line">
+                        {s.content}
+                      </div>
+                    ) : s.id === 'key-value-propositions' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 key-value-propositions-content proposal-content whitespace-pre-line">
+                        {s.content}
+                      </div>
+                    ) : s.id === 'benefits-and-roi' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 benefits-roi-content proposal-content whitespace-pre-line">
+                        {s.content}
+                      </div>
+                    ) : s.id === 'next-steps' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 next-steps-content proposal-content whitespace-pre-line">
+                        {s.content}
+                      </div>
+                    ) : s.id === 'one-time-development-cost' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 development-cost-content proposal-content whitespace-pre-line">
+                        {s.content}
+                      </div>
                     ) : (
-                      <p className="text-slate-700 leading-relaxed mt-1">{s.content}</p>
+                      <p className="text-slate-700 leading-relaxed mt-1 proposal-content">{s.content}</p>
                     )}
                   </section>
                 ))}
