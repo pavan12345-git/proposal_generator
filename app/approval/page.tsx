@@ -520,6 +520,10 @@ export default function ApprovalPage() {
                       <div className="text-slate-700 leading-relaxed mt-1 development-cost-content proposal-content whitespace-pre-line">
                         {s.content}
                       </div>
+                    ) : s.id === 'process-flow-diagram' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 process-flow-diagram-content whitespace-pre-line">
+                        {s.content}
+                      </div>
                     ) : (
                       <p className="text-slate-700 leading-relaxed mt-1 proposal-content">{s.content}</p>
                     )}

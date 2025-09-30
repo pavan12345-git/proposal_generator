@@ -148,6 +148,30 @@ export default function FinalReviewPage() {
                       <div className="text-slate-700 leading-relaxed mt-1 benefits-roi-content proposal-content whitespace-pre-line">{s.content}</div>
                     ) : s.id === 'next-steps' ? (
                       <div className="text-slate-700 leading-relaxed mt-1 next-steps-content proposal-content whitespace-pre-line">{s.content}</div>
+                    ) : s.id === 'process-flow-diagram' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 process-flow-diagram-content">
+                        {(() => {
+                          try {
+                            const stored = localStorage.getItem('process_flow_diagram_image')
+                            if (stored) {
+                              const img = JSON.parse(stored) as { url: string; name: string }
+                              return (
+                                <div className="w-full flex flex-col items-center justify-center">
+                                  <div className="w-full max-w-2xl border border-slate-200 rounded-lg bg-white p-3 mx-auto">
+                                    <img src={img.url} alt={img.name} className="w-full h-auto object-contain rounded" />
+                                    <p className="mt-2 text-xs text-slate-600 truncate text-center">{img.name}</p>
+                                  </div>
+                                </div>
+                              )
+                            }
+                          } catch {}
+                          return (
+                            <div className="mermaid-code-block">
+                              <pre><code>{s.content}</code></pre>
+                            </div>
+                          )
+                        })()}
+                      </div>
                     ) : s.id === 'additional-features-recommended' ? (
                       <div 
                         className="text-slate-700 leading-relaxed mt-1" 

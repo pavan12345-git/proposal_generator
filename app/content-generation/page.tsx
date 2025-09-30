@@ -272,6 +272,36 @@ function PreviewDocument({
   images,
 }: { companyName: string; sections: Section[]; images: ImageItem[] }) {
   const toc = sections.map((s, i) => ({ id: s.id, title: s.title || `Section ${i + 1}` }))
+  const [pfdImage, setPfdImage] = useState<{ url: string; name: string } | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('process_flow_diagram_image')
+      if (stored) {
+        setPfdImage(JSON.parse(stored))
+      }
+    } catch {}
+  }, [])
+
+  const handlePfdUpload: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const img = { url, name: file.name }
+    setPfdImage(img)
+    try {
+      localStorage.setItem('process_flow_diagram_image', JSON.stringify(img))
+    } catch {}
+    // reset input so same file can be chosen again later
+    e.currentTarget.value = ''
+  }
+
+  const handlePfdRemove = () => {
+    setPfdImage(null)
+    try {
+      localStorage.removeItem('process_flow_diagram_image')
+    } catch {}
+  }
 
   return (
     <div className="h-full overflow-auto">
@@ -377,6 +407,49 @@ function PreviewDocument({
                 className="mt-2 text-sm leading-6 text-slate-700" 
                 dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
               />
+            ) : s.id === 'process-flow-diagram' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700 process-flow-diagram-content">
+                {pfdImage ? (
+                  <div className="w-full flex flex-col items-center justify-center">
+                    <div className="w-full max-w-2xl border border-slate-200 rounded-lg bg-white p-3 mx-auto">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={pfdImage.url} alt={pfdImage.name} className="w-full h-auto object-contain rounded" />
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-xs text-slate-600 truncate">{pfdImage.name}</p>
+                        <button
+                          type="button"
+                          onClick={handlePfdRemove}
+                          className="text-xs rounded-md border border-slate-300 px-2 py-1 hover:border-blue-600 hover:text-blue-700"
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mermaid-code-block">
+                      <pre><code>{s.content || "Content not available yet."}</code></pre>
+                    </div>
+                    <div className="mt-3">
+                      <input
+                        id={`pfd-upload-input`}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                        className="hidden"
+                        onChange={handlePfdUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('pfd-upload-input')?.click()}
+                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-600 hover:text-blue-700"
+                      >
+                        Upload Diagram Image
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             ) : s.id === 'screenshots' ? (
               <div className="mt-2 text-sm leading-6 text-slate-700">
                 <p className="mb-4">{s.content || "Content not available yet."}</p>
