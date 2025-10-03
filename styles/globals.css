@@ -126,24 +126,24 @@
 .proposal-content {
   /* Main bullet points - standard round bullets (•) */
   ul li::marker {
-    font-size: 1.2em;
-    color: #1e293b;
-    font-weight: 600;
+    font-size: 1em;
+    color: #000000;
+    font-weight: normal;
   }
   
   /* Sub-bullet points - hyphens (-) */
   ul ul li::marker {
-    font-size: 1.1em;
-    color: #475569;
-    font-weight: 500;
+    font-size: 1em;
+    color: #000000;
+    font-weight: normal;
   }
   
   /* Asterisk bullet points (*) */
   ul li:has([data-bullet="asterisk"])::marker,
   li:has([data-bullet="asterisk"])::marker {
-    font-size: 1.2em;
-    color: #1e293b;
-    font-weight: 600;
+    font-size: 1em;
+    color: #000000;
+    font-weight: normal;
   }
 }
 
@@ -151,115 +151,385 @@
 .proposal-content ul li,
 .proposal-content ol li {
   font-size: 1em;
-  line-height: 1.6;
-  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  font-family: 'Cambria', 'Times New Roman', serif;
+  color: #000000;
+}
+
+/* Project Overview and Key Value Propositions specific list item styling */
+.project-overview-content ul li,
+.key-value-propositions-content ul li {
+  font-size: 1em;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  font-family: 'Cambria', 'Times New Roman', serif;
+  color: #000000;
+  padding-left: 0.5rem;
 }
 
 /* Enhanced bullet point visibility */
 .proposal-content ul li::before {
   content: "•";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  font-size: 1em;
+  color: #000000;
+  font-weight: normal;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.2em;
+  width: 1em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
+}
+
+/* Professional MS Word-style bullet points for proposal content */
+.proposal-bullets {
+  list-style-type: none !important;
+  padding-left: 0 !important;
+  margin: 0.5em 0 !important;
+  font-family: 'Cambria', 'Times New Roman', serif !important;
+}
+
+.proposal-bullets li {
+  font-size: 1rem !important;
+  line-height: 1.4 !important;
+  margin-bottom: 0.5em !important;
+  color: #000000 !important;
+  font-family: 'Cambria', 'Times New Roman', serif !important;
+  position: relative !important;
+  padding-left: 2.5em !important;
+}
+
+.proposal-bullets li::before {
+  content: "●" !important;
+  font-size: 2.5rem !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 2.5em !important;
+  text-align: center !important;
+  font-family: 'Cambria', 'Times New Roman', serif !important;
+}
+
+/* Professional numbered lists for proposal content */
+.proposal-numbered {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0.5em 0;
+  font-family: 'Cambria', 'Times New Roman', serif;
+}
+
+.proposal-numbered li {
+  font-size: 1rem;
+  line-height: 1.4;
+  margin-bottom: 0.5em;
+  color: #000000;
+  font-family: 'Cambria', 'Times New Roman', serif;
+  position: relative;
+  padding-left: 2.5em;
+  font-weight: bold;
+}
+
+.proposal-numbered li::before {
+  content: counter(item) ".";
+  counter-increment: item;
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.5em;
+  text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
+}
+
+.proposal-numbered {
+  counter-reset: item;
+}
+
+/* Ensure proper bullet point rendering for all proposal content */
+.proposal-content .proposal-bullets,
+.proposal-content .proposal-numbered {
+  margin: 0.5em 0;
+  padding-left: 0;
+}
+
+.proposal-content .proposal-bullets li,
+.proposal-content .proposal-numbered li {
+  margin-bottom: 0.5em;
+  padding-left: 2.5em;
+}
+
+/* Global large bullet points for all lists in proposal content */
+.proposal-content ul {
+  list-style-type: none !important;
+  padding-left: 0 !important;
+}
+
+/* Tech Stack specific bullet styling */
+.tech-stack-content .proposal-bullets {
+  list-style-type: none !important;
+  padding-left: 0 !important;
+  margin: 0.5em 0 !important;
+}
+
+.tech-stack-content .proposal-bullets li {
+  position: relative !important;
+  padding-left: 2.5em !important;
+  margin-bottom: 0.5em !important;
+  font-size: 1rem !important;
+  line-height: 1.4 !important;
+  color: #000000 !important;
+}
+
+.tech-stack-content .proposal-bullets li::before {
+  content: "●" !important;
+  font-size: 2.5rem !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 2.5em !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+}
+
+/* Ensure all ul elements in tech stack have bullets */
+.tech-stack-content ul {
+  list-style-type: none !important;
+  padding-left: 0 !important;
+}
+
+.tech-stack-content ul li {
+  position: relative !important;
+  padding-left: 2.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.tech-stack-content ul li::before {
+  content: "●" !important;
+  font-size: 2.5rem !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 2.5em !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+}
+
+.proposal-content ul li {
+  position: relative !important;
+  padding-left: 2.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.proposal-content ul li::before {
+  content: "●" !important;
+  font-size: 2.5rem !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 2.5em !important;
+  text-align: center !important;
+  font-family: 'Cambria', 'Times New Roman', serif !important;
+}
+
+/* Force large bullets for all sections */
+.project-overview-content ul,
+.key-value-propositions-content ul,
+.benefits-roi-content ul,
+.next-steps-content ul,
+.development-cost-content ul {
+  list-style-type: none !important;
+  padding-left: 0 !important;
+}
+
+.project-overview-content ul li,
+.key-value-propositions-content ul li,
+.benefits-roi-content ul li,
+.next-steps-content ul li,
+.development-cost-content ul li {
+  position: relative !important;
+  padding-left: 2.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.project-overview-content ul li::before,
+.key-value-propositions-content ul li::before,
+.benefits-roi-content ul li::before,
+.next-steps-content ul li::before,
+.development-cost-content ul li::before {
+  content: "●" !important;
+  font-size: 2.5rem !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 2.5em !important;
+  text-align: center !important;
+  font-family: 'Cambria', 'Times New Roman', serif !important;
+}
+
+/* Project Overview specific styling for bullet points */
+.project-overview-content {
+  font-family: 'Cambria', 'Times New Roman', serif;
+  line-height: 1.6;
+}
+
+/* Project Overview bullet points - similar to Next Steps */
+.project-overview-content {
+  font-family: 'Cambria', 'Times New Roman', serif;
+  line-height: 1.4;
+  color: #000000;
+}
+
+.project-overview-content ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0.5em 0;
+}
+
+.project-overview-content ul li {
+  font-size: 1rem;
+  line-height: 1.4;
+  margin-bottom: 0.5em;
+  color: #000000;
+  font-family: 'Cambria', 'Times New Roman', serif;
+  position: relative;
+  padding-left: 1.8em;
+}
+
+.project-overview-content ul li::before {
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2em;
+  text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
+}
+
+/* Project Overview and Key Value Propositions specific marker styling */
+.project-overview-content ul li::marker,
+.key-value-propositions-content ul li::marker {
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Sub-bullet styling */
 .proposal-content ul ul li::before {
-  content: "-";
-  font-size: 1.1em;
-  color: #475569;
-  font-weight: 600;
+  content: "●";
+  font-size: 2.2rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.1em;
+  width: 2.2em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Asterisk bullet styling */
 .proposal-content ul li:has([data-bullet="asterisk"])::before {
-  content: "*";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.2em;
+  width: 2.5em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Benefits & ROI section specific styling */
 .benefits-roi-content ul li::before {
-  content: "•";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.2em;
+  width: 2.5em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Development Cost section specific styling */
 .development-cost-content ul li::before {
-  content: "•";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.2em;
+  width: 2.5em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 .development-cost-content ul ul li::before {
-  content: "-";
-  font-size: 1.1em;
-  color: #475569;
-  font-weight: 600;
+  content: "●";
+  font-size: 2.2rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.1em;
+  width: 2.2em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Next Steps section specific styling */
 .next-steps-content ul li::before {
-  content: "•";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.2em;
+  width: 2.5em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Project Overview section specific styling */
 .project-overview-content ul li::before {
-  content: "*";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.2em;
+  width: 2.5em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Key Value Propositions section specific styling */
 .key-value-propositions-content ul li::before {
-  content: "*";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
   margin-right: 0.5rem;
   display: inline-block;
-  width: 1.2em;
+  width: 2.5em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* General content area bullet point enhancement */
@@ -267,43 +537,66 @@
 .content-area ol li {
   position: relative;
   padding-left: 0;
+  font-family: 'Cambria', 'Times New Roman', serif;
+  color: #000000;
 }
 
 .content-area ul li::before {
-  content: "•";
-  font-size: 1.2em;
-  color: #1e293b;
-  font-weight: 700;
+  content: "●";
+  font-size: 2.5rem;
+  color: #000000;
+  font-weight: bold;
   position: absolute;
   left: -1.5em;
   top: 0;
-  width: 1.2em;
+  width: 2.5em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 .content-area ul ul li::before {
-  content: "-";
-  font-size: 1.1em;
-  color: #475569;
-  font-weight: 600;
+  content: "●";
+  font-size: 2.2rem;
+  color: #000000;
+  font-weight: bold;
   position: absolute;
   left: -1.3em;
   top: 0;
-  width: 1.1em;
+  width: 2.2em;
   text-align: center;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 /* Ensure proper spacing for all bullet types */
 .proposal-content ul,
 .proposal-content ol {
   padding-left: 1.5em;
-  margin: 1rem 0;
+  margin: 0.5rem 0;
+  font-family: 'Cambria', 'Times New Roman', serif;
 }
 
 .proposal-content ul ul,
 .proposal-content ol ol {
   padding-left: 1.3em;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
+  font-family: 'Cambria', 'Times New Roman', serif;
+}
+
+/* Numbered list styling to match professional format */
+.proposal-content ol li {
+  font-family: 'Cambria', 'Times New Roman', serif;
+  font-size: 1em;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  color: #000000;
+  font-weight: bold;
+}
+
+.proposal-content ol li::marker {
+  font-family: 'Cambria', 'Times New Roman', serif;
+  font-weight: bold;
+  color: #000000;
+  font-size: 1em;
 }
 
 /* Mermaid code block styling for Process Flow Diagram */

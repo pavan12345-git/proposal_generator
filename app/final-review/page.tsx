@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { parseMarkdownTable } from "@/lib/proposal-utils"
+import { parseMarkdownTable, parseBulletPoints, formatKeyValuePropositionsContent, extractTechStackContent, formatTechStackContent } from "@/lib/proposal-utils"
 
 // Colors used (5 total): Blue (primary), White, Slate gray (neutral), Green (success), Amber (review)
 
@@ -141,9 +141,13 @@ export default function FinalReviewPage() {
                     {s.id === 'one-time-development-cost' ? (
                       <div className="text-slate-700 leading-relaxed mt-1 whitespace-pre-line development-cost-content proposal-content">{s.content}</div>
                     ) : s.id === 'project-overview' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 project-overview-content proposal-content whitespace-pre-line">{s.content}</div>
+                      <div className="text-slate-700 leading-relaxed mt-1 project-overview-content proposal-content whitespace-pre-line">
+                        {formatProjectOverviewContent(s.content)}
+                      </div>
                     ) : s.id === 'key-value-propositions' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 key-value-propositions-content proposal-content whitespace-pre-line">{s.content}</div>
+                      <div className="text-slate-700 leading-relaxed mt-1 key-value-propositions-content proposal-content whitespace-pre-line">
+                        {formatKeyValuePropositionsContent(s.content)}
+                      </div>
                     ) : s.id === 'benefits-and-roi' ? (
                       <div className="text-slate-700 leading-relaxed mt-1 benefits-roi-content proposal-content whitespace-pre-line">{s.content}</div>
                     ) : s.id === 'next-steps' ? (
@@ -163,6 +167,47 @@ export default function FinalReviewPage() {
                                   </div>
                                 </div>
                               )
+                            }
+                          } catch {}
+                          return (
+                            <div className="mermaid-code-block">
+                              <pre><code>{s.content}</code></pre>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    ) : s.id === 'technical-architecture' ? (
+                      <div className="text-slate-700 leading-relaxed mt-1 technical-architecture-content">
+                        {(() => {
+                          try {
+                            const stored = localStorage.getItem('technical_architecture_images')
+                            if (stored) {
+                              const images = JSON.parse(stored) as { url: string; name: string; id?: string }[]
+                              if (images.length > 0) {
+                                return (
+                                  <>
+                                    {/* Display uploaded images */}
+                                    <div className="w-full flex flex-col items-center justify-center mb-8">
+                                      <div className="flex flex-col gap-6 w-full max-w-4xl">
+                                        {images.map((img, index) => (
+                                          <div key={img.id || index} className="border border-slate-200 rounded-lg bg-white p-4">
+                                            <img src={img.url} alt={img.name} className="w-full h-auto object-contain rounded mb-3" />
+                                            <p className="text-sm text-slate-600 truncate font-medium text-center">{img.name}</p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Show tech stack content below the images */}
+                                    <div className="tech-stack-content">
+                                      <div 
+                                        className="text-slate-700 leading-relaxed"
+                                        dangerouslySetInnerHTML={{ __html: formatTechStackContent(s.content) }}
+                                      />
+                                    </div>
+                                  </>
+                                )
+                              }
                             }
                           } catch {}
                           return (

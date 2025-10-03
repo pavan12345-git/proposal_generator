@@ -425,6 +425,9 @@ export function BusinessRequirementsForm() {
   const [customObjectiveInput, setCustomObjectiveInput] = useState<string>("")
   const [countryOpen, setCountryOpen] = useState(false)
   const [currencyLoading, setCurrencyLoading] = useState(false)
+  
+  // Technical Stack state
+  const [technicalStack, setTechnicalStack] = useState<string[]>([])
 
   const [scenarioIndex, setScenarioIndex] = useState(0)
   const scenarios = useMemo(
@@ -432,13 +435,9 @@ export function BusinessRequirementsForm() {
       {
         name: "E-commerce",
         values: {
-          companyName: "TechCorp Solutions Ltd",
-          projectTitle: "E-commerce Platform with Mobile App",
-          clientName: "Sarah Johnson",
-          clientCompany: "Retail Innovations Inc",
-          clientEmail: "sarah.johnson@retailinnovations.com",
           projectDescription:
             "We need a comprehensive e-commerce platform with web and mobile applications. The solution should include inventory management, payment processing, customer analytics, and an admin dashboard. Integration with existing CRM and accounting systems is required.",
+          technicalStack: ["Frontend Architecture", "Backend Architecture", "DevOps & Deployment"],
           countryCode: "US",
           countryName: "United States",
           budget: "$25K-50K",
@@ -449,13 +448,9 @@ export function BusinessRequirementsForm() {
       {
         name: "Mobile App",
         values: {
-          companyName: "Nova Digital Labs",
-          projectTitle: "Mobile App Development for On-Demand Services",
-          clientName: "Daniel Kim",
-          clientCompany: "QuickServe Technologies",
-          clientEmail: "daniel.kim@quickserve.io",
           projectDescription:
             "Build a cross-platform mobile app (iOS/Android) with real-time booking, in-app payments, service provider dashboards, and analytics. Integrate with an existing REST API and third-party auth.",
+          technicalStack: ["Frontend Architecture", "Backend Architecture", "Automation"],
           countryCode: "US",
           countryName: "United States",
           budget: "$10K-25K",
@@ -713,11 +708,6 @@ export function BusinessRequirementsForm() {
       handleCountrySelect(s.countryCode)
     }, 0)
 
-    step(() => setInputValue("#companyName", s.companyName))
-    step(() => setInputValue("#projectTitle", s.projectTitle))
-    step(() => setInputValue("#clientName", s.clientName))
-    step(() => setInputValue("#clientCompany", s.clientCompany))
-    step(() => setInputValue("#clientEmail", s.clientEmail))
     step(() => setInputValue("#projectDescription", s.projectDescription), 180)
 
     step(() => {
@@ -732,6 +722,9 @@ export function BusinessRequirementsForm() {
     }, 360)
 
     step(() => setTimeline(s.timeline))
+    step(() => {
+      setTechnicalStack(s.technicalStack || [])
+    }, 120)
     step(() => {
       setObjectives(s.objectives)
       setCustomObjectives([])
@@ -748,11 +741,6 @@ export function BusinessRequirementsForm() {
 
   const clearAll = () => {
     const fields = [
-      "#companyName",
-      "#projectTitle",
-      "#clientName",
-      "#clientCompany",
-      "#clientEmail",
       "#projectDescription",
     ]
     fields.forEach((sel, i) =>
@@ -762,6 +750,7 @@ export function BusinessRequirementsForm() {
     )
 
     setTimeout(() => {
+      setTechnicalStack([])
       setObjectives([])
       setCustomObjectives([])
       setShowCustomObjective(false)
@@ -814,12 +803,8 @@ export function BusinessRequirementsForm() {
       // Collect form data
       const formData = new FormData(e.currentTarget)
       const requirements = {
-        companyName: formData.get('companyName') as string,
-        projectTitle: formData.get('projectTitle') as string,
-        clientName: formData.get('clientName') as string,
-        clientCompany: formData.get('clientCompany') as string,
-        clientEmail: formData.get('clientEmail') as string,
         projectDescription: formData.get('projectDescription') as string,
+        technicalStack: technicalStack,
         countryCode,
         countryName,
         budgetRange: budget === "CUSTOM" ? `${currencySymbol}${customBudgetMin}-${currencySymbol}${customBudgetMax}` : budget,
@@ -941,79 +926,16 @@ export function BusinessRequirementsForm() {
 
   return (
     <form ref={formRef} onSubmit={onSubmit} className="relative space-y-6 font-sans">
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="companyName" className="text-sm font-medium text-slate-700">
-            Company Name
-          </label>
-          <input
-            id="companyName"
-            name="companyName"
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="Acme Corp"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="projectTitle" className="text-sm font-medium text-slate-700">
-            Project Title
-          </label>
-          <input
-            id="projectTitle"
-            name="projectTitle"
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="New Website Redesign"
-          />
-        </div>
-        <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={clearAll}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            Clear
-          </button>
-        </div>
+      <section className="flex items-center justify-end gap-3 mb-6">
+        <button
+          type="button"
+          onClick={clearAll}
+          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Clear
+        </button>
       </section>
 
-      <fieldset className="rounded-lg border border-slate-200 p-4">
-        <legend className="px-1 text-sm font-medium text-slate-700">Client Information</legend>
-        <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="clientName" className="text-sm font-medium text-slate-700">
-              Name
-            </label>
-            <input
-              id="clientName"
-              name="clientName"
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="Jane Doe"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="clientCompany" className="text-sm font-medium text-slate-700">
-              Company
-            </label>
-            <input
-              id="clientCompany"
-              name="clientCompany"
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="Client Co."
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="clientEmail" className="text-sm font-medium text-slate-700">
-              Email
-            </label>
-            <input
-              id="clientEmail"
-              name="clientEmail"
-              type="email"
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="jane@example.com"
-            />
-          </div>
-        </div>
-      </fieldset>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="projectDescription" className="text-sm font-medium text-slate-700">
@@ -1028,6 +950,92 @@ export function BusinessRequirementsForm() {
           placeholder="Describe the project goals, audience, and scope."
         />
       </div>
+
+      <fieldset className="rounded-lg border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-medium text-slate-700">Technical Stack (Optional)</legend>
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="frontend-architecture"
+              name="technicalStack"
+              value="Frontend Architecture"
+              checked={technicalStack.includes("Frontend Architecture")}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setTechnicalStack([...technicalStack, "Frontend Architecture"])
+                } else {
+                  setTechnicalStack(technicalStack.filter(item => item !== "Frontend Architecture"))
+                }
+              }}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="frontend-architecture" className="text-sm text-slate-700">
+              Frontend Architecture
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="backend-architecture"
+              name="technicalStack"
+              value="Backend Architecture"
+              checked={technicalStack.includes("Backend Architecture")}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setTechnicalStack([...technicalStack, "Backend Architecture"])
+                } else {
+                  setTechnicalStack(technicalStack.filter(item => item !== "Backend Architecture"))
+                }
+              }}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="backend-architecture" className="text-sm text-slate-700">
+              Backend Architecture
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="automation"
+              name="technicalStack"
+              value="Automation"
+              checked={technicalStack.includes("Automation")}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setTechnicalStack([...technicalStack, "Automation"])
+                } else {
+                  setTechnicalStack(technicalStack.filter(item => item !== "Automation"))
+                }
+              }}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="automation" className="text-sm text-slate-700">
+              Automation
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="devops-deployment"
+              name="technicalStack"
+              value="DevOps & Deployment"
+              checked={technicalStack.includes("DevOps & Deployment")}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setTechnicalStack([...technicalStack, "DevOps & Deployment"])
+                } else {
+                  setTechnicalStack(technicalStack.filter(item => item !== "DevOps & Deployment"))
+                }
+              }}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="devops-deployment" className="text-sm text-slate-700">
+              DevOps & Deployment
+            </label>
+          </div>
+        </div>
+      </fieldset>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="flex flex-col gap-2">

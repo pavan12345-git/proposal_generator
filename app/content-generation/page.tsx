@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { getCurrentProposal, updateProposalSection, formatProjectOverviewContent, formatBenefitsAndROIContent, parseMarkdownTable } from "@/lib/proposal-utils"
+import { getCurrentProposal, updateProposalSection, formatProjectOverviewContent, formatBenefitsAndROIContent, formatKeyValuePropositionsContent, parseMarkdownTable, parseBulletPoints, extractTechStackContent, formatTechStackContent } from "@/lib/proposal-utils"
 import { ScreenshotsSection } from "@/components/screenshots-section"
 
 type SectionStatus = "Generating" | "Complete" | "Needs Review"
@@ -182,7 +182,7 @@ function SectionListItem({
               <div className="line-clamp-3 text-pretty">
                 {section.id === 'project-overview' ? (
                   <div className="whitespace-pre-line text-xs">
-                    {formatProjectOverviewContent(section.content) || "No content yet."}
+                    {formatProjectOverviewContent(section.content || "No content yet.")}
                   </div>
                 ) : section.id === 'benefits-and-roi' ? (
                   <div className="whitespace-pre-line text-xs">
@@ -273,12 +273,27 @@ function PreviewDocument({
 }: { companyName: string; sections: Section[]; images: ImageItem[] }) {
   const toc = sections.map((s, i) => ({ id: s.id, title: s.title || `Section ${i + 1}` }))
   const [pfdImage, setPfdImage] = useState<{ url: string; name: string } | null>(null)
+  const [taImages, setTaImages] = useState<{ url: string; name: string }[]>([])
+  const [taSaved, setTaSaved] = useState<boolean>(false)
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('process_flow_diagram_image')
       if (stored) {
         setPfdImage(JSON.parse(stored))
+      }
+    } catch {}
+    
+    try {
+      const stored = localStorage.getItem('technical_architecture_images')
+      if (stored) {
+        setTaImages(JSON.parse(stored))
+      }
+    } catch {}
+    try {
+      const savedFlag = localStorage.getItem('technical_architecture_saved')
+      if (savedFlag === 'true') {
+        setTaSaved(true)
       }
     } catch {}
   }, [])
@@ -300,6 +315,45 @@ function PreviewDocument({
     setPfdImage(null)
     try {
       localStorage.removeItem('process_flow_diagram_image')
+    } catch {}
+  }
+
+  const handleTaUpload: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    
+    const newImages: { url: string; name: string; id: string }[] = []
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const url = URL.createObjectURL(file)
+      const id = `ta_${Date.now()}_${i}`
+      newImages.push({ url, name: file.name, id })
+    }
+    
+    const updatedImages = [...taImages, ...newImages]
+    setTaImages(updatedImages)
+    
+    try {
+      localStorage.setItem('technical_architecture_images', JSON.stringify(updatedImages))
+    } catch {}
+    
+    // reset input so same files can be chosen again later
+    e.currentTarget.value = ''
+  }
+
+  const handleTaRemove = (id: string) => {
+    const updatedImages = taImages.filter((img) => img.id !== id)
+    setTaImages(updatedImages)
+    try {
+      localStorage.setItem('technical_architecture_images', JSON.stringify(updatedImages))
+    } catch {}
+  }
+
+  const handleTaSave = () => {
+    setTaSaved(true)
+    try {
+      localStorage.setItem('technical_architecture_saved', 'true')
     } catch {}
   }
 
@@ -364,11 +418,11 @@ function PreviewDocument({
             </h3>
             {s.id === 'project-overview' ? (
               <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line project-overview-content proposal-content">
-                {formatProjectOverviewContent(s.content) || "Content not available yet."}
+                {formatProjectOverviewContent(s.content || "Content not available yet.")}
               </div>
             ) : s.id === 'key-value-propositions' ? (
               <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line key-value-propositions-content proposal-content">
-                {s.content || "Content not available yet."}
+                {formatKeyValuePropositionsContent(s.content || "Content not available yet.")}
               </div>
             ) : s.id === 'benefits-and-roi' ? (
               <div className="mt-2 text-sm leading-6 text-slate-700 whitespace-pre-line benefits-roi-content proposal-content">
@@ -448,6 +502,162 @@ function PreviewDocument({
                       </button>
                     </div>
                   </>
+                )}
+              </div>
+            ) : s.id === 'technical-architecture' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700 technical-architecture-content">
+                {/* Show Mermaid codes only if no images uploaded */}
+                {taImages.length === 0 && (
+                  <div className="mermaid-code-block mb-6">
+                    <pre><code>{s.content || "Content not available yet."}</code></pre>
+                  </div>
+                )}
+                
+                {/* Upload section */}
+                <div className="mb-6">
+                  <input
+                    id={`ta-upload-input`}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                    multiple
+                    className="hidden"
+                    onChange={handleTaUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('ta-upload-input')?.click()}
+                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-600 hover:text-blue-700"
+                  >
+                    {taImages.length > 0 ? 'Upload Another Diagram' : 'Upload Architecture Diagrams'}
+                  </button>
+                </div>
+
+                {/* Display uploaded images */}
+                {taImages.length > 0 && (
+                  <div className="w-full flex flex-col items-center justify-center mb-8">
+                    <div className="flex flex-col gap-6 w-full max-w-4xl">
+                      {taImages.map((img) => (
+                        <div key={img.id} className="border border-slate-200 rounded-lg bg-white p-4">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.url} alt={img.name} className="w-full h-auto object-contain rounded mb-3" />
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-slate-600 truncate font-medium">{img.name}</p>
+                            <button
+                              type="button"
+                              onClick={() => handleTaRemove(img.id)}
+                              className="text-xs rounded-md border border-slate-300 px-3 py-1.5 hover:border-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tech Stack Section - only show if images are uploaded */}
+                {taImages.length > 0 && (
+                  <div className="tech-stack-content">
+                    {(() => {
+                      // Get selected technical stack from requirements
+                      const getSelectedTechStack = () => {
+                        try {
+                          const proposal = localStorage.getItem('currentProposal')
+                          if (proposal) {
+                            const parsed = JSON.parse(proposal)
+                            return parsed.requirements?.technicalStack || []
+                          }
+                        } catch (error) {
+                          console.error('Error getting technical stack:', error)
+                        }
+                        return []
+                      }
+
+                      const selectedTechStack = getSelectedTechStack()
+                      
+                      // Generate tech stack content based on selected categories
+                      const generateTechStackContent = (categories: string[]) => {
+                        if (categories.length === 0) {
+                          return {
+                            title: "Technical Stack",
+                            content: "No specific technical stack categories were selected. Please go back to the Requirements form to select your preferred technical stack categories."
+                          }
+                        }
+
+                        const techStackSpecs: Record<string, string[]> = {
+                          "Frontend Architecture": [
+                            "Framework: React.js with TypeScript",
+                            "Language: JavaScript/TypeScript",
+                            "Styling: Tailwind CSS",
+                            "State Management: Redux Toolkit",
+                            "Performance: React Query for caching"
+                          ],
+                          "Backend Architecture": [
+                            "Database: PostgreSQL with Prisma ORM",
+                            "API: Node.js with Express.js"
+                          ],
+                          "Automation": [
+                            "N8N: Workflow automation platform"
+                          ],
+                          "DevOps & Deployment": [
+                            "CI/CD: GitHub Actions",
+                            "Containerization: Docker",
+                            "Orchestration: Kubernetes",
+                            "Reverse Proxy: Nginx",
+                            "Security: SSL certificates"
+                          ]
+                        }
+
+                        let content = ""
+                        
+                        categories.forEach((category, index) => {
+                          if (techStackSpecs[category]) {
+                            content += `**${index + 1}. ${category}**\n`
+                            techStackSpecs[category].forEach(spec => {
+                              content += `• ${spec}\n`
+                            })
+                            if (index < categories.length - 1) {
+                              content += "\n"
+                            }
+                          }
+                        })
+
+                        return {
+                          title: "Technical Stack",
+                          content: content
+                        }
+                      }
+
+                      const techStackData = generateTechStackContent(selectedTechStack)
+                      
+                      // Use generated tech stack content based on selected categories
+                      if (selectedTechStack.length > 0) {
+                        return (
+                          <div className="text-slate-700 leading-relaxed">
+                            <h3 className="font-semibold text-lg mb-4 text-slate-800">{techStackData.title}</h3>
+                            <div 
+                              className="whitespace-pre-line text-sm leading-relaxed"
+                              dangerouslySetInnerHTML={{ 
+                                __html: techStackData.content
+                                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              }}
+                            />
+                          </div>
+                        )
+                      } else {
+                        // Fallback: show message if no categories selected
+                        return (
+                          <div className="text-slate-700 leading-relaxed">
+                            <h3 className="font-semibold text-lg mb-4 text-slate-800">Technical Stack</h3>
+                            <div className="text-sm text-slate-600 italic">
+                              No specific technical stack categories were selected. Please go back to the Requirements form to select your preferred technical stack categories.
+                            </div>
+                          </div>
+                        )
+                      }
+                    })()}
+                  </div>
                 )}
               </div>
             ) : s.id === 'screenshots' ? (

@@ -90,7 +90,7 @@ export async function POST(request) {
         console.log('Imported functions:', Object.keys(importedFunctions));
         console.log('generateAdditionalFeatures exists:', 'generateAdditionalFeatures' in importedFunctions);
         
-        const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline, generateProcessFlowDiagram, generateWithClaude } = importedFunctions;
+        const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline, generateProcessFlowDiagram, generateTechnicalArchitecture, generateWithClaude } = importedFunctions;
         
         let content;
       
@@ -158,6 +158,14 @@ export async function POST(request) {
         }
         content = await generateProcessFlowDiagram(formData);
         console.log('✅ Generated process-flow-diagram successfully');
+      } else if (formData.sectionType === 'technical-architecture') {
+        console.log('🔄 Generating technical-architecture...');
+        console.log('Function exists:', typeof generateTechnicalArchitecture);
+        if (typeof generateTechnicalArchitecture !== 'function') {
+          throw new Error('generateTechnicalArchitecture function not found');
+        }
+        content = await generateTechnicalArchitecture(formData);
+        console.log('✅ Generated technical-architecture successfully');
       } else if (formData.sectionType === 'generic') {
         // Generate generic content for custom sections
         const prompt = `Generate content for a business proposal section titled "${formData.sectionTitle}" based on the following requirements:
@@ -227,7 +235,7 @@ Please generate professional, detailed content for this section that aligns with
       console.log('🎯 API: Processing selected sections request');
       console.log('📋 Selected sections received:', formData.selectedSections);
       
-      const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline, generateProcessFlowDiagram } = await import('@/lib/claude-client');
+      const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline, generateProcessFlowDiagram, generateTechnicalArchitecture } = await import('@/lib/claude-client');
       
       const selectedSectionIds = formData.selectedSections.map(s => s.id);
       console.log('🔍 Selected section IDs:', selectedSectionIds);
@@ -291,6 +299,10 @@ Please generate professional, detailed content for this section that aligns with
         console.log('✅ Generating process-flow-diagram');
         sectionsToGenerate['process-flow-diagram'] = await generateProcessFlowDiagram(formData);
       }
+      if (selectedSectionIds.includes('technical-architecture')) {
+        console.log('✅ Generating technical-architecture');
+        sectionsToGenerate['technical-architecture'] = await generateTechnicalArchitecture(formData);
+      }
       
       console.log('📊 Sections to generate:', Object.keys(sectionsToGenerate));
       
@@ -319,7 +331,8 @@ Please generate professional, detailed content for this section that aligns with
           'monthly-retainer-fee': 'Monthly Retainer Fee',
           'total-investment-from-client': 'Total Investment from Client',
           'implementation-timeline': 'Implementation Timeline',
-          'process-flow-diagram': 'Process Flow Diagram'
+          'process-flow-diagram': 'Process Flow Diagram',
+          'technical-architecture': 'Technical Architecture'
         };
         
         proposalData.sections[sectionId] = {
