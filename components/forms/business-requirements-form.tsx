@@ -428,10 +428,6 @@ export function BusinessRequirementsForm() {
   
   // Technical Stack state
   const [technicalStack, setTechnicalStack] = useState<string[]>([])
-  const [projectTitle, setProjectTitle] = useState<string>("")
-  const [companyName, setCompanyName] = useState<string>("")
-  const [clientName, setClientName] = useState<string>("")
-  const [clientCompany, setClientCompany] = useState<string>("")
 
   const [scenarioIndex, setScenarioIndex] = useState(0)
   const scenarios = useMemo(
@@ -441,10 +437,6 @@ export function BusinessRequirementsForm() {
         values: {
           projectDescription:
             "We need a comprehensive e-commerce platform with web and mobile applications. The solution should include inventory management, payment processing, customer analytics, and an admin dashboard. Integration with existing CRM and accounting systems is required.",
-          projectTitle: "E-commerce Platform Development",
-          companyName: "Tech Solutions Inc.",
-          clientName: "John Smith",
-          clientCompany: "ABC Corporation",
           technicalStack: ["Frontend Architecture", "Backend Architecture", "DevOps & Deployment"],
           countryCode: "US",
           countryName: "United States",
@@ -458,10 +450,6 @@ export function BusinessRequirementsForm() {
         values: {
           projectDescription:
             "Build a cross-platform mobile app (iOS/Android) with real-time booking, in-app payments, service provider dashboards, and analytics. Integrate with an existing REST API and third-party auth.",
-          projectTitle: "Mobile App Development",
-          companyName: "Digital Innovations Ltd.",
-          clientName: "Sarah Johnson",
-          clientCompany: "XYZ Services",
           technicalStack: ["Frontend Architecture", "Backend Architecture", "Automation"],
           countryCode: "US",
           countryName: "United States",
@@ -721,10 +709,6 @@ export function BusinessRequirementsForm() {
     }, 0)
 
     step(() => setInputValue("#projectDescription", s.projectDescription), 180)
-    step(() => setProjectTitle(s.projectTitle || ""), 200)
-    step(() => setCompanyName(s.companyName || ""), 220)
-    step(() => setClientName(s.clientName || ""), 240)
-    step(() => setClientCompany(s.clientCompany || ""), 260)
 
     step(() => {
       const desired = s.budget
@@ -771,10 +755,6 @@ export function BusinessRequirementsForm() {
       setCustomObjectives([])
       setShowCustomObjective(false)
       setCustomObjectiveInput("")
-      setProjectTitle("")
-      setCompanyName("")
-      setClientName("")
-      setClientCompany("")
     }, 100)
 
     setTimeout(() => {
@@ -824,10 +804,6 @@ export function BusinessRequirementsForm() {
       const formData = new FormData(e.currentTarget)
       const requirements = {
         projectDescription: formData.get('projectDescription') as string,
-        projectTitle: projectTitle,
-        companyName: companyName,
-        clientName: clientName,
-        clientCompany: clientCompany,
         technicalStack: technicalStack,
         countryCode,
         countryName,
@@ -878,13 +854,13 @@ export function BusinessRequirementsForm() {
 
 
       // Validate required fields
-      const requiredFields = ['projectDescription', 'projectTitle', 'companyName', 'clientName', 'clientCompany']
+      const requiredFields = ['projectDescription']
       const missingFields = requiredFields.filter(field => !requirements[field as keyof typeof requirements])
       
       if (missingFields.length > 0) {
         toast({
           title: "Validation Error",
-          description: `Please fill in all required fields: ${missingFields.join(', ')}`,
+          description: "Please provide a project description to continue.",
           variant: "destructive"
         })
         setSubmitting(false)
@@ -992,71 +968,6 @@ export function BusinessRequirementsForm() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="projectTitle" className="text-sm font-medium text-slate-700">
-            Project Title
-          </label>
-          <input
-            id="projectTitle"
-            name="projectTitle"
-            type="text"
-            required
-            value={projectTitle}
-            onChange={(e) => setProjectTitle(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="e.g., E-commerce Platform Development"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label htmlFor="companyName" className="text-sm font-medium text-slate-700">
-            Your Company Name
-          </label>
-          <input
-            id="companyName"
-            name="companyName"
-            type="text"
-            required
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="e.g., Tech Solutions Inc."
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label htmlFor="clientName" className="text-sm font-medium text-slate-700">
-            Client Contact Name
-          </label>
-          <input
-            id="clientName"
-            name="clientName"
-            type="text"
-            required
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="e.g., John Smith"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label htmlFor="clientCompany" className="text-sm font-medium text-slate-700">
-            Client Company Name
-          </label>
-          <input
-            id="clientCompany"
-            name="clientCompany"
-            type="text"
-            required
-            value={clientCompany}
-            onChange={(e) => setClientCompany(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="e.g., ABC Corporation"
-          />
-        </div>
-      </div>
 
       <fieldset className="rounded-lg border border-slate-200 p-4">
         <legend className="px-1 text-sm font-medium text-slate-700">Technical Stack (Optional)</legend>

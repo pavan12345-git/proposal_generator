@@ -273,6 +273,7 @@ function PreviewDocument({
 }: { companyName: string; sections: Section[]; images: ImageItem[] }) {
   const toc = sections.map((s, i) => ({ id: s.id, title: s.title || `Section ${i + 1}` }))
   const [pfdImage, setPfdImage] = useState<{ url: string; name: string } | null>(null)
+  const [pfdSaved, setPfdSaved] = useState<boolean>(false)
   const [taImages, setTaImages] = useState<ImageItem[]>([])
   const [taSaved, setTaSaved] = useState<boolean>(false)
 
@@ -296,6 +297,13 @@ function PreviewDocument({
         setTaSaved(true)
       }
     } catch {}
+    
+    try {
+      const pfdSavedFlag = localStorage.getItem('process_flow_diagram_saved')
+      if (pfdSavedFlag === 'true') {
+        setPfdSaved(true)
+      }
+    } catch {}
   }, [])
 
   const handlePfdUpload: React.ChangeEventHandler<HTMLInputElement> = (e) => {
@@ -313,8 +321,10 @@ function PreviewDocument({
 
   const handlePfdRemove = () => {
     setPfdImage(null)
+    setPfdSaved(false) // Reset save status when removing image
     try {
       localStorage.removeItem('process_flow_diagram_image')
+      localStorage.removeItem('process_flow_diagram_saved')
     } catch {}
   }
 
@@ -345,8 +355,17 @@ function PreviewDocument({
   const handleTaRemove = (id: string) => {
     const updatedImages = taImages.filter((img) => img.id !== id)
     setTaImages(updatedImages)
+    setTaSaved(false) // Reset save status when removing images
     try {
       localStorage.setItem('technical_architecture_images', JSON.stringify(updatedImages))
+      localStorage.removeItem('technical_architecture_saved')
+    } catch {}
+  }
+
+  const handlePfdSave = () => {
+    setPfdSaved(true)
+    try {
+      localStorage.setItem('process_flow_diagram_saved', 'true')
     } catch {}
   }
 
@@ -473,34 +492,47 @@ function PreviewDocument({
                         <button
                           type="button"
                           onClick={handlePfdRemove}
-                          className="text-xs rounded-md border border-slate-300 px-2 py-1 hover:border-blue-600 hover:text-blue-700"
+                          className="text-xs rounded-md border border-slate-300 px-2 py-1 hover:border-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           Remove Image
                         </button>
                       </div>
                     </div>
+                    {!pfdSaved && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handlePfdSave}
+                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          Save Diagram
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <>
                     <div className="mermaid-code-block">
                       <pre><code>{s.content || "Content not available yet."}</code></pre>
                     </div>
-                    <div className="mt-3">
-                      <input
-                        id={`pfd-upload-input`}
-                        type="file"
-                        accept="image/png,image/jpeg,image/jpg,image/svg+xml"
-                        className="hidden"
-                        onChange={handlePfdUpload}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => document.getElementById('pfd-upload-input')?.click()}
-                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-600 hover:text-blue-700"
-                      >
-                        Upload Diagram Image
-                      </button>
-                    </div>
+                    {!pfdSaved && (
+                      <div className="mt-3">
+                        <input
+                          id={`pfd-upload-input`}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                          className="hidden"
+                          onChange={handlePfdUpload}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('pfd-upload-input')?.click()}
+                          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-600 hover:text-blue-700"
+                        >
+                          Upload Diagram Image
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -514,23 +546,25 @@ function PreviewDocument({
                 )}
                 
                 {/* Upload section */}
-                <div className="mb-6">
-                  <input
-                    id={`ta-upload-input`}
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/svg+xml"
-                    multiple
-                    className="hidden"
-                    onChange={handleTaUpload}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById('ta-upload-input')?.click()}
-                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-600 hover:text-blue-700"
-                  >
-                    {taImages.length > 0 ? 'Upload Another Diagram' : 'Upload Architecture Diagrams'}
-                  </button>
-                </div>
+                {!taSaved && (
+                  <div className="mb-6">
+                    <input
+                      id={`ta-upload-input`}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                      multiple
+                      className="hidden"
+                      onChange={handleTaUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('ta-upload-input')?.click()}
+                      className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-blue-600 hover:text-blue-700"
+                    >
+                      {taImages.length > 0 ? 'Upload Another Diagram' : 'Upload Architecture Diagrams'}
+                    </button>
+                  </div>
+                )}
 
                 {/* Display uploaded images */}
                 {taImages.length > 0 && (
@@ -553,6 +587,17 @@ function PreviewDocument({
                         </div>
                       ))}
                     </div>
+                    {!taSaved && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleTaSave}
+                          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          Save Architecture
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1204,7 +1249,7 @@ export default function ContentGenerationPage() {
               </button>
 
               <Link
-                href="/content-index"
+                href="/final-review"
                 className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 Review & Finalize

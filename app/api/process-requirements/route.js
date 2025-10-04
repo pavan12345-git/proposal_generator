@@ -29,7 +29,7 @@ export async function POST(request) {
           'executive-summary': {
             id: 'executive-summary',
             title: 'Executive Summary',
-            content: `Our ${formData.projectTitle} is designed to help your business streamline operations and improve efficiency. Our platform combines modern technology with user-friendly design, helping your business to achieve better results while reducing operational costs.`,
+            content: `Our ${formData.projectTitle || 'project'} is designed to help your business streamline operations and improve efficiency. Our platform combines modern technology with user-friendly design, helping your business to achieve better results while reducing operational costs.`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -38,7 +38,7 @@ export async function POST(request) {
           'project-overview': {
             id: 'project-overview',
             title: 'Project Overview',
-            content: `* ${formData.companyName} will deliver ${formData.projectTitle} to address ${formData.clientCompany || formData.clientName}'s business needs.\n* The solution combines modern web technologies with responsive design and backend integration.\n* Key features: user management, data processing, and analytics with real-time updates.\n* The platform improves operational efficiency by automating processes, reducing manual work, and providing business insights.\n* Success will be defined by delivering a fully functional solution and gaining measurable business value through improved user experience.`,
+            content: `* ${formData.companyName || 'our company'} will deliver ${formData.projectTitle || 'project'} to address ${formData.clientCompany || 'the client company' || formData.clientName || 'the client'}'s business needs.\n* The solution combines modern web technologies with responsive design and backend integration.\n* Key features: user management, data processing, and analytics with real-time updates.\n* The platform improves operational efficiency by automating processes, reducing manual work, and providing business insights.\n* Success will be defined by delivering a fully functional solution and gaining measurable business value through improved user experience.`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -56,7 +56,7 @@ export async function POST(request) {
           'our-solution': {
             id: 'our-solution',
             title: 'Our Solution',
-            content: `Our ${formData.projectTitle} is designed to streamline your business operations while improving user experience. The platform provides comprehensive functionality to help your business achieve better results and operational efficiency.`,
+            content: `Our ${formData.projectTitle || 'project'} is designed to streamline your business operations while improving user experience. The platform provides comprehensive functionality to help your business achieve better results and operational efficiency.`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -170,9 +170,9 @@ export async function POST(request) {
         // Generate generic content for custom sections
         const prompt = `Generate content for a business proposal section titled "${formData.sectionTitle}" based on the following requirements:
 
-Company: ${formData.companyName}
-Project: ${formData.projectTitle}
-Client: ${formData.clientName} (${formData.clientCompany || 'N/A'})
+Company: ${formData.companyName || 'our company'}
+Project: ${formData.projectTitle || 'project'}
+Client: ${formData.clientName || 'the client'} (${formData.clientCompany || 'the client company' || 'N/A'})
 Budget: ${formData.budgetRange}
 Timeline: ${formData.timeline}
 Objectives: ${formData.objectives?.join(', ') || 'N/A'}
@@ -249,7 +249,7 @@ Please generate professional, detailed content for this section that aligns with
           sectionsToGenerate['executive-summary'] = await generateExecutiveSummary(formData);
         } catch (error) {
           console.log('⚠️ Failed to generate executive-summary, using fallback');
-          sectionsToGenerate['executive-summary'] = `Our ${formData.projectTitle} is designed to help your business streamline operations and improve efficiency. Our platform combines modern technology with user-friendly design, helping your business to achieve better results while reducing operational costs.`;
+          sectionsToGenerate['executive-summary'] = `Our ${formData.projectTitle || 'project'} is designed to help your business streamline operations and improve efficiency. Our platform combines modern technology with user-friendly design, helping your business to achieve better results while reducing operational costs.`;
         }
       }
       if (selectedSectionIds.includes('project-overview')) {
@@ -258,7 +258,7 @@ Please generate professional, detailed content for this section that aligns with
           sectionsToGenerate['project-overview'] = await generateProjectOverview(formData);
         } catch (error) {
           console.log('⚠️ Failed to generate project-overview, using fallback');
-          sectionsToGenerate['project-overview'] = `* ${formData.companyName} will deliver ${formData.projectTitle} to address ${formData.clientCompany || formData.clientName}'s business needs.\n* The solution combines modern web technologies with responsive design and backend integration.\n* Key features: user management, data processing, and analytics with real-time updates.\n* The platform improves operational efficiency by automating processes, reducing manual work, and providing business insights.\n* Success will be defined by delivering a fully functional solution and gaining measurable business value through improved user experience.`;
+          sectionsToGenerate['project-overview'] = `* ${formData.companyName || 'our company'} will deliver ${formData.projectTitle || 'project'} to address ${formData.clientCompany || 'the client company' || formData.clientName || 'the client'}'s business needs.\n* The solution combines modern web technologies with responsive design and backend integration.\n* Key features: user management, data processing, and analytics with real-time updates.\n* The platform improves operational efficiency by automating processes, reducing manual work, and providing business insights.\n* Success will be defined by delivering a fully functional solution and gaining measurable business value through improved user experience.`;
         }
       }
       if (selectedSectionIds.includes('the-problem')) {
@@ -276,7 +276,7 @@ Please generate professional, detailed content for this section that aligns with
           sectionsToGenerate['our-solution'] = await generateOurSolution(formData);
         } catch (error) {
           console.log('⚠️ Failed to generate our-solution, using fallback');
-          sectionsToGenerate['our-solution'] = `Our ${formData.projectTitle} is designed to streamline your business operations while improving user experience. The platform provides comprehensive functionality to help your business achieve better results and operational efficiency.`;
+          sectionsToGenerate['our-solution'] = `Our ${formData.projectTitle || 'project'} is designed to streamline your business operations while improving user experience. The platform provides comprehensive functionality to help your business achieve better results and operational efficiency.`;
         }
       }
       if (selectedSectionIds.includes('key-value-propositions')) {
@@ -294,7 +294,7 @@ Please generate professional, detailed content for this section that aligns with
           sectionsToGenerate['benefits-and-roi'] = await generateBenefitsAndROI(formData);
         } catch (error) {
           console.log('⚠️ Failed to generate benefits-and-roi, using fallback');
-          sectionsToGenerate['benefits-and-roi'] = `The implementation of ${formData.projectTitle} will deliver significant benefits including improved operational efficiency, reduced manual work, enhanced user experience, and measurable cost savings. Expected ROI of 200-300% within the first year.`;
+          sectionsToGenerate['benefits-and-roi'] = `The implementation of ${formData.projectTitle || 'project'} will deliver significant benefits including improved operational efficiency, reduced manual work, enhanced user experience, and measurable cost savings. Expected ROI of 200-300% within the first year.`;
         }
       }
       if (selectedSectionIds.includes('next-steps')) {
@@ -455,7 +455,7 @@ Please generate professional, detailed content for this section that aligns with
           'executive-summary': {
             id: 'executive-summary',
             title: 'Executive Summary',
-            content: `Our ${formData.projectTitle} is designed to help your business streamline operations and improve efficiency. Our platform combines modern technology with user-friendly design, helping your business to achieve better results while reducing operational costs.`,
+            content: `Our ${formData.projectTitle || 'project'} is designed to help your business streamline operations and improve efficiency. Our platform combines modern technology with user-friendly design, helping your business to achieve better results while reducing operational costs.`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -464,7 +464,7 @@ Please generate professional, detailed content for this section that aligns with
           'project-overview': {
             id: 'project-overview',
             title: 'Project Overview',
-            content: `* ${formData.companyName} will deliver ${formData.projectTitle} to address ${formData.clientCompany || formData.clientName}'s business needs.\n* The solution combines modern web technologies with responsive design and backend integration.\n* Key features: user management, data processing, and analytics with real-time updates.\n* The platform improves operational efficiency by automating processes, reducing manual work, and providing business insights.\n* Success will be defined by delivering a fully functional solution and gaining measurable business value through improved user experience.`,
+            content: `* ${formData.companyName || 'our company'} will deliver ${formData.projectTitle || 'project'} to address ${formData.clientCompany || 'the client company' || formData.clientName || 'the client'}'s business needs.\n* The solution combines modern web technologies with responsive design and backend integration.\n* Key features: user management, data processing, and analytics with real-time updates.\n* The platform improves operational efficiency by automating processes, reducing manual work, and providing business insights.\n* Success will be defined by delivering a fully functional solution and gaining measurable business value through improved user experience.`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -482,7 +482,7 @@ Please generate professional, detailed content for this section that aligns with
           'our-solution': {
             id: 'our-solution',
             title: 'Our Solution',
-            content: `Our ${formData.projectTitle} is designed to streamline your business operations while improving user experience. The platform provides comprehensive functionality to help your business achieve better results and operational efficiency.`,
+            content: `Our ${formData.projectTitle || 'project'} is designed to streamline your business operations while improving user experience. The platform provides comprehensive functionality to help your business achieve better results and operational efficiency.`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -500,7 +500,7 @@ Please generate professional, detailed content for this section that aligns with
           'benefits-and-roi': {
             id: 'benefits-and-roi',
             title: 'Benefits & ROI',
-            content: `The implementation of ${formData.projectTitle} will deliver significant benefits including improved operational efficiency, reduced manual work, enhanced user experience, and measurable cost savings. Expected ROI of 200-300% within the first year.`,
+            content: `The implementation of ${formData.projectTitle || 'project'} will deliver significant benefits including improved operational efficiency, reduced manual work, enhanced user experience, and measurable cost savings. Expected ROI of 200-300% within the first year.`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),

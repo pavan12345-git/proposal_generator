@@ -1,359 +1,719 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { parseMarkdownTable, parseBulletPoints, formatKeyValuePropositionsContent, extractTechStackContent, formatTechStackContent, formatProjectOverviewContent } from "@/lib/proposal-utils"
+import { parseMarkdownTable, formatProjectOverviewContent, formatKeyValuePropositionsContent, extractTechStackContent, formatTechStackContent } from "@/lib/proposal-utils"
 
-// Colors used (5 total): Blue (primary), White, Slate gray (neutral), Green (success), Amber (review)
-
+type SectionStatus = "approved" | "rejected" | "pending"
 type Section = {
   id: string
   title: string
   content: string
-  approved: boolean
+  status: SectionStatus
+  editing?: boolean
+  originalContent?: string
 }
-type Diagram = {
+
+type ImageItem = {
   id: string
-  title: string
   url: string
-  status: "pending" | "approved" | "rejected"
+  name: string
 }
 
 export default function FinalReviewPage() {
   const [sections, setSections] = useState<Section[]>([])
-  const [diagrams, setDiagrams] = useState<Diagram[]>([])
-  const [exportFmt, setExportFmt] = useState<"PDF" | "Word" | "PowerPoint">("PDF")
+  const [loading, setLoading] = useState(true)
+  const [regenerating, setRegenerating] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [shared, setShared] = useState(false)
-  const [approvalsComplete, setApprovalsComplete] = useState(false)
+  const [exportFormat, setExportFormat] = useState<"PDF" | "Word" | "PowerPoint">("PDF")
+  const [pfdImage, setPfdImage] = useState<{ url: string; name: string } | null>(null)
+  const [taImages, setTaImages] = useState<ImageItem[]>([])
+  const [screenshots, setScreenshots] = useState<ImageItem[]>([])
 
+  // Load generated sections from localStorage
   useEffect(() => {
-    const secRaw = window.localStorage.getItem("proposal_sections")
-    const diaRaw = window.localStorage.getItem("proposal_diagrams")
-    const apprRaw = window.localStorage.getItem("proposal_approvals_complete")
-    if (secRaw) setSections(JSON.parse(secRaw))
-    if (diaRaw) setDiagrams(JSON.parse(diaRaw))
-    if (apprRaw) setApprovalsComplete(Boolean(JSON.parse(apprRaw)))
+    const loadSections = () => {
+      try {
+        const proposalRaw = localStorage.getItem("currentProposal")
+        const selectedSectionsRaw = localStorage.getItem("selectedSections")
+        
+        if (proposalRaw && selectedSectionsRaw) {
+          const proposal = JSON.parse(proposalRaw)
+          const selectedSections = JSON.parse(selectedSectionsRaw)
+          
+          // Create sections array from generated content
+          const generatedSections: Section[] = selectedSections.map((section: any, index: number) => {
+            const generatedContent = proposal.sections?.[section.id]
+            return {
+              id: section.id,
+              title: section.title || section.id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              content: generatedContent?.content || "Content not available",
+              status: "pending" as SectionStatus,
+              originalContent: generatedContent?.content || "Content not available"
+            }
+          })
+          
+          setSections(generatedSections)
+        }
+      } catch (error) {
+        console.error("Error loading sections:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSections()
   }, [])
 
-  const includedSections = useMemo(() => sections.filter((s) => s.approved), [sections])
-  const approvedDiagrams = useMemo(() => diagrams.filter((d) => d.status === "approved"), [diagrams])
-  const canDownload = approvalsComplete && includedSections.length > 0
+  // Load images from localStorage
+  useEffect(() => {
+    try {
+      const storedPfd = localStorage.getItem('process_flow_diagram_image')
+      if (storedPfd) {
+        setPfdImage(JSON.parse(storedPfd))
+      }
+    } catch {}
 
-  function handleSaveDraft() {
+    try {
+      const storedTa = localStorage.getItem('technical_architecture_images')
+      if (storedTa) {
+        setTaImages(JSON.parse(storedTa))
+      }
+    } catch {}
+
+    try {
+      const storedScreenshots = localStorage.getItem('screenshots')
+      if (storedScreenshots) {
+        setScreenshots(JSON.parse(storedScreenshots))
+      }
+    } catch {}
+  }, [])
+
+  const approveSection = (id: string) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, status: "approved" } : s))
+  }
+
+  const rejectSection = (id: string) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, status: "rejected" } : s))
+  }
+
+  const toggleEdit = (id: string) => {
+    setSections(prev => prev.map(s => {
+      if (s.id === id) {
+        if (s.editing) {
+          // Save changes
+          return { ...s, editing: false }
+        } else {
+          // Start editing
+          return { ...s, editing: true, originalContent: s.content }
+        }
+      }
+      return s
+    }))
+  }
+
+  const saveEdit = (id: string, content: string) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, content, editing: false } : s))
+  }
+
+  const cancelEdit = (id: string) => {
+    setSections(prev => prev.map(s => {
+      if (s.id === id) {
+        return { ...s, editing: false, content: s.originalContent || s.content }
+      }
+      return s
+    }))
+  }
+
+  const regenerateSection = async (id: string) => {
+    setRegenerating(id)
+    try {
+      // Get proposal data from localStorage
+      const proposalRaw = localStorage.getItem("currentProposal")
+      if (!proposalRaw) {
+        throw new Error("Proposal data not found")
+      }
+
+      // Call API to regenerate specific section
+      const response = await fetch('/api/regenerate-section', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-proposal-data': proposalRaw
+        },
+        body: JSON.stringify({ sectionId: id })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        setSections(prev => prev.map(s => 
+          s.id === id ? { ...s, content: result.content, status: "pending" } : s
+        ))
+      } else {
+        // Fallback to simple regeneration message
+        setSections(prev => prev.map(s => 
+          s.id === id ? { ...s, content: s.content + "\n\n[Content regenerated - please review]", status: "pending" } : s
+        ))
+      }
+    } catch (error) {
+      console.error("Error regenerating section:", error)
+      // Fallback to simple regeneration message
+      setSections(prev => prev.map(s => 
+        s.id === id ? { ...s, content: s.content + "\n\n[Content regenerated - please review]", status: "pending" } : s
+      ))
+    } finally {
+      setRegenerating(null)
+    }
+  }
+
+  const approveAll = () => {
+    setSections(prev => prev.map(s => ({ ...s, status: "approved" })))
+  }
+
+  const handleSaveDraft = () => {
     setSaved(false)
     setTimeout(() => setSaved(true), 700)
   }
 
-  async function handleShareLink() {
-    setShared(false)
-    const link = `${window.location.origin}/final-review?doc=${Date.now()}`
+  const handleDownload = () => {
+    if (!allApproved) return
+    setDownloading(true)
+    
     try {
-      await navigator.clipboard.writeText(link)
-      setShared(true)
-    } catch {
-      setShared(false)
+      // Get all approved sections
+      const approvedSections = sections.filter(s => s.status === "approved")
+      
+      // Create document content
+      const documentContent = generateDocumentContent(approvedSections)
+      
+      if (exportFormat === "PDF") {
+        downloadAsPDF(documentContent)
+      } else if (exportFormat === "Word") {
+        downloadAsWord(documentContent)
+      } else if (exportFormat === "PowerPoint") {
+        downloadAsPowerPoint(documentContent)
+      }
+      
+      setDownloading(false)
+    } catch (error) {
+      console.error("Error generating document:", error)
+      setDownloading(false)
+      alert("Error generating document. Please try again.")
     }
   }
 
-  function handleDownload() {
-    if (!canDownload) return
-    setDownloading(true)
+  const generateDocumentContent = (approvedSections: Section[]) => {
+    const proposalData = JSON.parse(localStorage.getItem("currentProposal") || "{}")
+    const requirements = proposalData.requirements || {}
+    
+    let content = `
+# PROJECT PROPOSAL
+
+**Project:** ${requirements.projectDescription || "Custom Project"}
+**Timeline:** ${requirements.timeline || "TBD"}
+**Budget:** ${requirements.budgetRange || "TBD"}
+**Date:** ${new Date().toLocaleDateString()}
+
+---
+
+`
+
+    approvedSections.forEach((section, index) => {
+      content += `\n## ${index + 1}. ${section.title}\n\n`
+      
+      // Handle special sections with images
+      if (section.id === 'technical-architecture' && taImages.length > 0) {
+        content += `**Technical Architecture Diagrams:**\n`
+        taImages.forEach((img, imgIndex) => {
+          content += `\n**Diagram ${imgIndex + 1}:** ${img.name}\n`
+          content += `![${img.name}](${img.url})\n`
+        })
+        content += `\n`
+      }
+      
+      if (section.id === 'process-flow-diagram' && pfdImage) {
+        content += `**Process Flow Diagram:**\n`
+        content += `![${pfdImage.name}](${pfdImage.url})\n\n`
+      }
+      
+      if (section.id === 'screenshots' && screenshots.length > 0) {
+        content += `**Screenshots:**\n`
+        screenshots.forEach((img, imgIndex) => {
+          content += `\n**Screenshot ${imgIndex + 1}:** ${img.name}\n`
+          content += `![${img.name}](${img.url})\n`
+        })
+        content += `\n`
+      }
+      
+      // Add section content
+      content += `${section.content}\n\n`
+      content += `---\n\n`
+    })
+    
+    return content
+  }
+
+  const downloadAsPDF = (content: string) => {
+    // Create a new window with the content
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+    
+    // Convert markdown tables to HTML tables
+    const convertMarkdownToHTML = (text: string) => {
+      let html = text
+      
+      // Convert markdown tables to HTML tables
+      html = html.replace(/\|(.+)\|\n\|[-\s|]+\|\n((?:\|.+\|\n?)*)/g, (match, header, rows) => {
+        const headerCells = header.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell)
+        const rowLines = rows.trim().split('\n').filter((line: string) => line.trim())
+        
+        let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px;">'
+        
+        // Add header
+        tableHTML += '<thead><tr>'
+        headerCells.forEach((cell: string) => {
+          tableHTML += `<th style="border: 1px solid #ddd; padding: 12px; text-align: left; background-color: #f3f4f6; font-weight: bold;">${cell}</th>`
+        })
+        tableHTML += '</tr></thead>'
+        
+        // Add rows
+        tableHTML += '<tbody>'
+        rowLines.forEach((row: string) => {
+          const cells = row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell)
+          tableHTML += '<tr>'
+          cells.forEach((cell: string) => {
+            // Handle bold text in cells
+            const formattedCell = cell.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            tableHTML += `<td style="border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: top;">${formattedCell}</td>`
+          })
+          tableHTML += '</tr>'
+        })
+        tableHTML += '</tbody></table>'
+        
+        return tableHTML
+      })
+      
+      // Convert other markdown elements
+      html = html
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^### (.*$)/gim, '<h3 style="color: #374151; margin-top: 20px;">$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2 style="color: #1e40af; margin-top: 30px;">$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">$1</h1>')
+        // Handle bullet lists
+        .replace(/((?:^\- .*\n?)+)/gim, (match) => {
+          const items = match.trim().split('\n').filter(line => line.trim())
+          return '<ul style="margin: 10px 0; padding-left: 30px;">' + 
+                 items.map(item => `<li style="margin: 5px 0;">${item.replace(/^\- /, '')}</li>`).join('') + 
+                 '</ul>'
+        })
+        // Handle numbered lists
+        .replace(/((?:^\d+\. .*\n?)+)/gim, (match) => {
+          const items = match.trim().split('\n').filter(line => line.trim())
+          return '<ol style="margin: 10px 0; padding-left: 30px;">' + 
+                 items.map(item => `<li style="margin: 5px 0;">${item.replace(/^\d+\. /, '')}</li>`).join('') + 
+                 '</ol>'
+        })
+        .replace(/\n/g, '<br>')
+      
+      return html
+    }
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Project Proposal</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            h1 { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
+            h2 { color: #1e40af; margin-top: 30px; }
+            h3 { color: #374151; }
+            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f3f4f6; }
+            ul, ol { margin: 10px 0; padding-left: 30px; }
+            li { margin: 5px 0; }
+            img { max-width: 100%; height: auto; margin: 10px 0; }
+            .page-break { page-break-before: always; }
+            @media print {
+              body { margin: 0; }
+              .page-break { page-break-before: always; }
+            }
+          </style>
+        </head>
+        <body>
+          ${convertMarkdownToHTML(content)}
+        </body>
+      </html>
+    `
+    
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+    
+    // Wait for content to load, then print
     setTimeout(() => {
-      setDownloading(false)
-      alert(`Exported as ${exportFmt}. (Placeholder)`)
-    }, 1200)
+      printWindow.print()
+      printWindow.close()
+    }, 1000)
+  }
+
+  const downloadAsWord = (content: string) => {
+    // Create a simple text file that can be opened in Word
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Project_Proposal_${new Date().toISOString().split('T')[0]}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadAsPowerPoint = (content: string) => {
+    // For PowerPoint, we'll create a simple text file that can be imported
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Project_Proposal_${new Date().toISOString().split('T')[0]}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const progress = {
+    total: sections.length,
+    approved: sections.filter(s => s.status === "approved").length,
+    rejected: sections.filter(s => s.status === "rejected").length,
+    pending: sections.filter(s => s.status === "pending").length
+  }
+
+  const allApproved = progress.total > 0 && progress.approved === progress.total
+
+  const renderSectionContent = (section: Section) => {
+    if (section.editing) {
+      return (
+        <div className="space-y-4">
+          <Textarea
+            value={section.content}
+            onChange={(e) => setSections(prev => prev.map(s => 
+              s.id === section.id ? { ...s, content: e.target.value } : s
+            ))}
+            className="min-h-[200px]"
+          />
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => saveEdit(section.id, section.content)}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Save Changes
+            </Button>
+            <Button 
+              onClick={() => cancelEdit(section.id)}
+              variant="outline"
+              size="sm"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    // Special handling for different section types
+    if (section.id === 'technical-architecture' && taImages.length > 0) {
+      return (
+        <div className="space-y-4">
+          <div className="grid gap-4">
+            {taImages.map((img) => (
+              <div key={img.id} className="border rounded-lg p-4">
+                <img src={img.url} alt={img.name} className="w-full h-auto rounded" />
+                <p className="text-sm text-gray-600 mt-2">{img.name}</p>
+              </div>
+            ))}
+          </div>
+          <div 
+            className="prose max-w-none"
+            dangerouslySetInnerHTML={{ 
+              __html: parseMarkdownTable(section.content) 
+            }}
+          />
+        </div>
+      )
+    }
+
+    if (section.id === 'process-flow-diagram' && pfdImage) {
+      return (
+        <div className="space-y-4">
+          <div className="border rounded-lg p-4">
+            <img src={pfdImage.url} alt={pfdImage.name} className="w-full h-auto rounded" />
+            <p className="text-sm text-gray-600 mt-2">{pfdImage.name}</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (section.id === 'screenshots' && screenshots.length > 0) {
+      return (
+        <div className="space-y-4">
+          <div className="grid gap-4">
+            {screenshots.map((img) => (
+              <div key={img.id} className="border rounded-lg p-4">
+                <img src={img.url} alt={img.name} className="w-full h-auto rounded" />
+                <p className="text-sm text-gray-600 mt-2">{img.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    // Default content rendering with special formatting
+    if (section.id === 'project-overview') {
+      return (
+        <div 
+          className="prose max-w-none"
+          dangerouslySetInnerHTML={{ 
+            __html: formatProjectOverviewContent(section.content)
+          }}
+        />
+      )
+    }
+
+    if (section.id === 'key-value-propositions') {
+      return (
+        <div 
+          className="prose max-w-none"
+          dangerouslySetInnerHTML={{ 
+            __html: formatKeyValuePropositionsContent(section.content)
+          }}
+        />
+      )
+    }
+
+    // Default content rendering
+    return (
+      <div 
+        className="prose max-w-none"
+        dangerouslySetInnerHTML={{ 
+          __html: parseMarkdownTable(section.content) 
+        }}
+      />
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading proposal sections...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <main className="p-4 md:p-6 max-w-7xl mx-auto font-sans">
-      <header className="mb-4">
-        <nav aria-label="Breadcrumbs" className="text-sm text-slate-600">
-          <ol className="flex items-center gap-2">
-            <li>
-              <Link className="text-blue-600 hover:underline" href="/">
-                Home
-              </Link>
-            </li>
-            <li aria-hidden="true" className="text-slate-400">
-              {"/"}
-            </li>
-            <li>
-              <Link className="text-blue-600 hover:underline" href="/approval">
-                Approval
-              </Link>
-            </li>
-            <li aria-hidden="true" className="text-slate-400">
-              {"/"}
-            </li>
-            <li aria-current="page" className="text-slate-800">
-              Final Review
-            </li>
-          </ol>
-        </nav>
-        <h1 className="mt-2 text-2xl md:text-3xl font-semibold text-slate-900 text-balance">Final Review</h1>
-        <p className="text-slate-600 mt-1">
-          Preview the complete document, verify the included sections, and export your proposal.
-        </p>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Final Proposal Review</h1>
+              <p className="mt-2 text-gray-600">
+                Review and approve each section of your generated proposal
+              </p>
+            </div>
+            <Link 
+              href="/content-generation"
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              ← Back to Content Generation
+            </Link>
+          </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Document Preview */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Complete Document Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <article className="max-w-none">
-                <header className="border-b border-slate-200 pb-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-semibold text-slate-900">Company Name</h2>
-                      <p className="text-sm text-slate-600">Proposal Document</p>
-                    </div>
-                    <div className="w-24 h-10 bg-blue-600 rounded text-white flex items-center justify-center text-sm">
-                      Logo
-                    </div>
-                  </div>
-                </header>
+          {/* Progress Indicator */}
+          <div className="mt-6 bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Proposal Completion Status</h2>
+              <div className="text-sm text-gray-600">
+                {progress.approved} of {progress.total} sections approved
+              </div>
+            </div>
+            
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+              <div 
+                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress.total > 0 ? (progress.approved / progress.total) * 100 : 0}%` }}
+              />
+            </div>
 
-                <section className="mb-6">
-                  <h3 className="text-base font-semibold text-slate-900">Table of Contents</h3>
-                  <ol className="text-sm text-slate-700 list-decimal ml-5 mt-2">
-                    {includedSections.map((s, i) => (
-                      <li key={s.id} className="mb-1">
-                        {i + 1}. {s.title}
-                      </li>
-                    ))}
-                    {approvedDiagrams.length > 0 && <li>Images & Diagrams</li>}
-                  </ol>
-                </section>
-
-                {includedSections.map((s) => (
-                  <section key={s.id} className="mb-6">
-                    <h3 className="text-lg font-semibold text-slate-900">{s.title}</h3>
-                    {s.id === 'one-time-development-cost' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 whitespace-pre-line development-cost-content proposal-content">{s.content}</div>
-                    ) : s.id === 'project-overview' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 project-overview-content proposal-content whitespace-pre-line">
-                        {formatProjectOverviewContent(s.content)}
-                      </div>
-                    ) : s.id === 'key-value-propositions' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 key-value-propositions-content proposal-content whitespace-pre-line">
-                        {formatKeyValuePropositionsContent(s.content)}
-                      </div>
-                    ) : s.id === 'benefits-and-roi' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 benefits-roi-content proposal-content whitespace-pre-line">{s.content}</div>
-                    ) : s.id === 'next-steps' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 next-steps-content proposal-content whitespace-pre-line">{s.content}</div>
-                    ) : s.id === 'process-flow-diagram' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 process-flow-diagram-content">
-                        {(() => {
-                          try {
-                            const stored = localStorage.getItem('process_flow_diagram_image')
-                            if (stored) {
-                              const img = JSON.parse(stored) as { url: string; name: string }
-                              return (
-                                <div className="w-full flex flex-col items-center justify-center">
-                                  <div className="w-full max-w-2xl border border-slate-200 rounded-lg bg-white p-3 mx-auto">
-                                    <img src={img.url} alt={img.name} className="w-full h-auto object-contain rounded" />
-                                    <p className="mt-2 text-xs text-slate-600 truncate text-center">{img.name}</p>
-                                  </div>
-                                </div>
-                              )
-                            }
-                          } catch {}
-                          return (
-                            <div className="mermaid-code-block">
-                              <pre><code>{s.content}</code></pre>
-                            </div>
-                          )
-                        })()}
-                      </div>
-                    ) : s.id === 'technical-architecture' ? (
-                      <div className="text-slate-700 leading-relaxed mt-1 technical-architecture-content">
-                        {(() => {
-                          try {
-                            const stored = localStorage.getItem('technical_architecture_images')
-                            if (stored) {
-                              const images = JSON.parse(stored) as { url: string; name: string; id?: string }[]
-                              if (images.length > 0) {
-                                return (
-                                  <>
-                                    {/* Display uploaded images */}
-                                    <div className="w-full flex flex-col items-center justify-center mb-8">
-                                      <div className="flex flex-col gap-6 w-full max-w-4xl">
-                                        {images.map((img, index) => (
-                                          <div key={img.id || index} className="border border-slate-200 rounded-lg bg-white p-4">
-                                            <img src={img.url} alt={img.name} className="w-full h-auto object-contain rounded mb-3" />
-                                            <p className="text-sm text-slate-600 truncate font-medium text-center">{img.name}</p>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Show tech stack content below the images */}
-                                    <div className="tech-stack-content">
-                                      <div 
-                                        className="text-slate-700 leading-relaxed"
-                                        dangerouslySetInnerHTML={{ __html: formatTechStackContent(s.content) }}
-                                      />
-                                    </div>
-                                  </>
-                                )
-                              }
-                            }
-                          } catch {}
-                          return (
-                            <div className="mermaid-code-block">
-                              <pre><code>{s.content}</code></pre>
-                            </div>
-                          )
-                        })()}
-                      </div>
-                    ) : s.id === 'additional-features-recommended' ? (
-                      <div 
-                        className="text-slate-700 leading-relaxed mt-1" 
-                        dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content) }}
-                      />
-                    ) : s.id === 'operational-costs-monthly' ? (
-                      <div 
-                        className="text-slate-700 leading-relaxed mt-1" 
-                        dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content) }}
-                      />
-                    ) : s.id === 'monthly-retainer-fee' ? (
-                      <div 
-                        className="text-slate-700 leading-relaxed mt-1" 
-                        dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content) }}
-                      />
-                    ) : s.id === 'total-investment-from-client' ? (
-                      <div 
-                        className="text-slate-700 leading-relaxed mt-1" 
-                        dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content) }}
-                      />
-                    ) : s.id === 'implementation-timeline' ? (
-                      <div 
-                        className="text-slate-700 leading-relaxed mt-1" 
-                        dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content) }}
-                      />
-                    ) : (
-                      <p className="text-slate-700 leading-relaxed mt-1 proposal-content">{s.content}</p>
-                    )}
-                  </section>
-                ))}
-
-                {approvedDiagrams.length > 0 && (
-                  <section className="mb-6">
-                    <h3 className="text-lg font-semibold text-slate-900">Images & Diagrams</h3>
-                    <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {approvedDiagrams.map((d) => (
-                        <figure key={d.id} className="border border-slate-200 rounded p-2 bg-white">
-                          <img
-                            src={d.url || "/placeholder.svg?height=160&width=240&query=diagram%20placeholder"}
-                            alt={d.title}
-                            className="w-full h-28 object-contain"
-                          />
-                          <figcaption className="text-xs text-slate-600 mt-1">{d.title}</figcaption>
-                        </figure>
-                      ))}
-                    </div>
-                  </section>
-                )}
-              </article>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Checklist + Actions */}
-        <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Final Checklist</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {includedSections.map((s) => (
-                  <li key={s.id} className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked
-                      readOnly
-                      aria-label={`Include ${s.title}`}
-                      className="mt-1 accent-blue-600"
-                    />
-                    <span className="text-sm text-slate-800">{s.title}</span>
-                  </li>
-                ))}
-                {includedSections.length === 0 && <p className="text-sm text-slate-600">No approved sections.</p>}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Export</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between bg-transparent">
-                    {exportFmt}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-40">
-                  <DropdownMenuItem onClick={() => setExportFmt("PDF")}>PDF</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setExportFmt("Word")}>Word (.docx)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setExportFmt("PowerPoint")}>PowerPoint (.pptx)</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button
-                className={cn(
-                  "w-full bg-blue-600 hover:bg-blue-700 text-white",
-                  !canDownload && "pointer-events-none opacity-50",
-                )}
-                onClick={handleDownload}
-                aria-disabled={!canDownload}
-              >
-                {downloading ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"
-                      aria-hidden="true"
-                    />
-                    Preparing {exportFmt}…
-                  </span>
-                ) : (
-                  "Download Proposal"
-                )}
+            <div className="flex items-center justify-between">
+              <Button onClick={approveAll} variant="outline" size="sm">
+                Approve All Sections
               </Button>
-
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" className="w-full" onClick={handleSaveDraft}>
-                  Save Draft
-                </Button>
-                <Button variant="outline" className="w-full bg-transparent" onClick={handleShareLink}>
-                  Share Link
-                </Button>
+              <div className="flex gap-2">
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  Approved: {progress.approved}
+                </Badge>
+                <Badge variant="secondary" className="bg-red-100 text-red-800">
+                  Rejected: {progress.rejected}
+                </Badge>
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                  Pending: {progress.pending}
+                </Badge>
               </div>
-
-              <div className="text-xs text-slate-600">
-                {saved && <p className="text-green-700">Draft saved successfully.</p>}
-                {shared && <p className="text-green-700">Link copied to clipboard.</p>}
-                {!approvalsComplete && (
-                  <p className="text-amber-700 mt-1">Complete all approvals to enable downloading.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
-      </section>
-    </main>
+
+        {/* Sections */}
+        <div className="space-y-6">
+          {sections.map((section, index) => (
+            <Card key={section.id} className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">
+                    {index + 1}. {section.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={
+                        section.status === "approved" ? "default" : 
+                        section.status === "rejected" ? "destructive" : 
+                        "secondary"
+                      }
+                      className={
+                        section.status === "approved" ? "bg-green-100 text-green-800" :
+                        section.status === "rejected" ? "bg-red-100 text-red-800" :
+                        "bg-yellow-100 text-yellow-800"
+                      }
+                    >
+                      {section.status === "approved" ? "Approved" :
+                       section.status === "rejected" ? "Rejected" :
+                       "Pending"}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Content */}
+                  {renderSectionContent(section)}
+                  
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                    <Button
+                      onClick={() => approveSection(section.id)}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      ✅ Approve
+                    </Button>
+                    <Button
+                      onClick={() => rejectSection(section.id)}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      ❌ Reject
+                    </Button>
+                    <Button
+                      onClick={() => toggleEdit(section.id)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      ✏️ {section.editing ? "Save" : "Edit"}
+                    </Button>
+                    <Button
+                      onClick={() => regenerateSection(section.id)}
+                      size="sm"
+                      variant="outline"
+                      disabled={regenerating === section.id}
+                    >
+                      {regenerating === section.id ? "🔄 Regenerating..." : "🔄 Regenerate"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="mt-12 bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={handleSaveDraft}
+                variant="outline"
+                disabled={saved}
+              >
+                {saved ? "✓ Draft Saved" : "Save Draft"}
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Export Format:</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      {exportFormat}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => setExportFormat("PDF")}>
+                      PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setExportFormat("Word")}>
+                      Word
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setExportFormat("PowerPoint")}>
+                      PowerPoint
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleDownload}
+              disabled={!allApproved || downloading}
+              className={cn(
+                "bg-blue-600 hover:bg-blue-700",
+                (!allApproved || downloading) && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              {downloading ? "Downloading..." : "Download Proposal"}
+            </Button>
+          </div>
+          
+          {!allApproved && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800">
+                ⚠️ All sections must be approved before downloading the proposal.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
