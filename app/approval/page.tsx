@@ -600,7 +600,7 @@ export default function ApprovalPage() {
         accept=".txt,.md,.docx,.rtf,text/plain"
         className="hidden"
         onChange={(e) => {
-          const secId = sectionUploadRef.current?.getAttribute("data-section-id")
+          const secId = sectionUploadRef.current?.getAttribute("data-section-id") || null
           handleSectionUpload(e, secId)
           sectionUploadRef.current?.removeAttribute("data-section-id")
         }}

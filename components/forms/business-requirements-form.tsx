@@ -428,6 +428,10 @@ export function BusinessRequirementsForm() {
   
   // Technical Stack state
   const [technicalStack, setTechnicalStack] = useState<string[]>([])
+  const [projectTitle, setProjectTitle] = useState<string>("")
+  const [companyName, setCompanyName] = useState<string>("")
+  const [clientName, setClientName] = useState<string>("")
+  const [clientCompany, setClientCompany] = useState<string>("")
 
   const [scenarioIndex, setScenarioIndex] = useState(0)
   const scenarios = useMemo(
@@ -437,6 +441,10 @@ export function BusinessRequirementsForm() {
         values: {
           projectDescription:
             "We need a comprehensive e-commerce platform with web and mobile applications. The solution should include inventory management, payment processing, customer analytics, and an admin dashboard. Integration with existing CRM and accounting systems is required.",
+          projectTitle: "E-commerce Platform Development",
+          companyName: "Tech Solutions Inc.",
+          clientName: "John Smith",
+          clientCompany: "ABC Corporation",
           technicalStack: ["Frontend Architecture", "Backend Architecture", "DevOps & Deployment"],
           countryCode: "US",
           countryName: "United States",
@@ -450,6 +458,10 @@ export function BusinessRequirementsForm() {
         values: {
           projectDescription:
             "Build a cross-platform mobile app (iOS/Android) with real-time booking, in-app payments, service provider dashboards, and analytics. Integrate with an existing REST API and third-party auth.",
+          projectTitle: "Mobile App Development",
+          companyName: "Digital Innovations Ltd.",
+          clientName: "Sarah Johnson",
+          clientCompany: "XYZ Services",
           technicalStack: ["Frontend Architecture", "Backend Architecture", "Automation"],
           countryCode: "US",
           countryName: "United States",
@@ -497,7 +509,7 @@ export function BusinessRequirementsForm() {
   }, [])
 
   useEffect(() => {
-    const opts = (currencyCode && BUDGET_BY_CURRENCY[currencyCode]) || BUDGET_BY_CURRENCY.USD
+    const opts = (currencyCode && currencyCode !== "DEFAULT" && BUDGET_BY_CURRENCY[currencyCode]) || BUDGET_BY_CURRENCY.USD || []
     if (opts && opts[1]) {
       setBudget(opts[1].value)
     } else {
@@ -709,6 +721,10 @@ export function BusinessRequirementsForm() {
     }, 0)
 
     step(() => setInputValue("#projectDescription", s.projectDescription), 180)
+    step(() => setProjectTitle(s.projectTitle || ""), 200)
+    step(() => setCompanyName(s.companyName || ""), 220)
+    step(() => setClientName(s.clientName || ""), 240)
+    step(() => setClientCompany(s.clientCompany || ""), 260)
 
     step(() => {
       const desired = s.budget
@@ -755,6 +771,10 @@ export function BusinessRequirementsForm() {
       setCustomObjectives([])
       setShowCustomObjective(false)
       setCustomObjectiveInput("")
+      setProjectTitle("")
+      setCompanyName("")
+      setClientName("")
+      setClientCompany("")
     }, 100)
 
     setTimeout(() => {
@@ -804,12 +824,33 @@ export function BusinessRequirementsForm() {
       const formData = new FormData(e.currentTarget)
       const requirements = {
         projectDescription: formData.get('projectDescription') as string,
+        projectTitle: projectTitle,
+        companyName: companyName,
+        clientName: clientName,
+        clientCompany: clientCompany,
         technicalStack: technicalStack,
         countryCode,
         countryName,
         budgetRange: budget === "CUSTOM" ? `${currencySymbol}${customBudgetMin}-${currencySymbol}${customBudgetMax}` : budget,
         timeline: timeline,
-        objectives: [...objectives, ...customObjectives]
+        objectives: [...objectives, ...customObjectives],
+        selectedSections: [
+          { id: 'executive-summary' },
+          { id: 'project-overview' },
+          { id: 'the-problem' },
+          { id: 'our-solution' },
+          { id: 'key-value-propositions' },
+          { id: 'benefits-and-roi' },
+          { id: 'next-steps' },
+          { id: 'one-time-development-cost' },
+          { id: 'additional-features-recommended' },
+          { id: 'operational-costs-monthly' },
+          { id: 'monthly-retainer-fee' },
+          { id: 'total-investment-from-client' },
+          { id: 'implementation-timeline' },
+          { id: 'process-flow-diagram' },
+          { id: 'technical-architecture' }
+        ]
       }
 
       // Validate custom budget if selected
@@ -836,8 +877,8 @@ export function BusinessRequirementsForm() {
       }
 
 
-      // Validate required fields (only project description)
-      const requiredFields = ['projectDescription']
+      // Validate required fields
+      const requiredFields = ['projectDescription', 'projectTitle', 'companyName', 'clientName', 'clientCompany']
       const missingFields = requiredFields.filter(field => !requirements[field as keyof typeof requirements])
       
       if (missingFields.length > 0) {
@@ -850,9 +891,9 @@ export function BusinessRequirementsForm() {
         return
       }
 
-      // Call API to process requirements and generate executive summary
+      // Call API to process requirements and generate all sections
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minute timeout for all sections
       
       const response = await fetch('/api/process-requirements', {
         method: 'POST',
@@ -908,7 +949,7 @@ export function BusinessRequirementsForm() {
       
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          errorMessage = "Request timed out. The AI service may be overloaded. Please try again in a few minutes."
+          errorMessage = "Request timed out while generating all sections. This can take up to 5 minutes. Please try again or check your internet connection."
         } else {
           errorMessage = error.message
         }
@@ -949,6 +990,72 @@ export function BusinessRequirementsForm() {
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
           placeholder="Describe the project goals, audience, and scope."
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="projectTitle" className="text-sm font-medium text-slate-700">
+            Project Title
+          </label>
+          <input
+            id="projectTitle"
+            name="projectTitle"
+            type="text"
+            required
+            value={projectTitle}
+            onChange={(e) => setProjectTitle(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            placeholder="e.g., E-commerce Platform Development"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="companyName" className="text-sm font-medium text-slate-700">
+            Your Company Name
+          </label>
+          <input
+            id="companyName"
+            name="companyName"
+            type="text"
+            required
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            placeholder="e.g., Tech Solutions Inc."
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="clientName" className="text-sm font-medium text-slate-700">
+            Client Contact Name
+          </label>
+          <input
+            id="clientName"
+            name="clientName"
+            type="text"
+            required
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            placeholder="e.g., John Smith"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="clientCompany" className="text-sm font-medium text-slate-700">
+            Client Company Name
+          </label>
+          <input
+            id="clientCompany"
+            name="clientCompany"
+            type="text"
+            required
+            value={clientCompany}
+            onChange={(e) => setClientCompany(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            placeholder="e.g., ABC Corporation"
+          />
+        </div>
       </div>
 
       <fieldset className="rounded-lg border border-slate-200 p-4">
@@ -1337,7 +1444,7 @@ export function BusinessRequirementsForm() {
           {submitting ? (
             <span className="inline-flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-              Generating Executive Summary...
+              Generating All Sections...
             </span>
           ) : (
             "Submit & Continue"

@@ -273,7 +273,7 @@ function PreviewDocument({
 }: { companyName: string; sections: Section[]; images: ImageItem[] }) {
   const toc = sections.map((s, i) => ({ id: s.id, title: s.title || `Section ${i + 1}` }))
   const [pfdImage, setPfdImage] = useState<{ url: string; name: string } | null>(null)
-  const [taImages, setTaImages] = useState<{ url: string; name: string }[]>([])
+  const [taImages, setTaImages] = useState<ImageItem[]>([])
   const [taSaved, setTaSaved] = useState<boolean>(false)
 
   useEffect(() => {
@@ -967,7 +967,7 @@ export default function ContentGenerationPage() {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Generating" } : s)))
     
     try {
-      const proposal = getCurrentProposal()
+      const proposal = getCurrentProposal() as any
       if (proposal?.requirements) {
         let newContent
         
@@ -1034,7 +1034,7 @@ export default function ContentGenerationPage() {
           updateProposalSection(id, {
             content: newContent,
             status: 'Complete',
-            version: (proposal.sections[id]?.version || 0) + 1
+            version: ((proposal as any).sections?.[id]?.version || 0) + 1
           })
         } else {
           setSections((prev) =>

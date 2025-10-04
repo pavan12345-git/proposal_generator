@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { parseMarkdownTable, parseBulletPoints, formatKeyValuePropositionsContent, extractTechStackContent, formatTechStackContent } from "@/lib/proposal-utils"
+import { parseMarkdownTable, parseBulletPoints, formatKeyValuePropositionsContent, extractTechStackContent, formatTechStackContent, formatProjectOverviewContent } from "@/lib/proposal-utils"
 
 // Colors used (5 total): Blue (primary), White, Slate gray (neutral), Green (success), Amber (review)
 
