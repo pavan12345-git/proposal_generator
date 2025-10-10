@@ -271,6 +271,32 @@ function PreviewDocument({
   sections,
   images,
 }: { companyName: string; sections: Section[]; images: ImageItem[] }) {
+  // Ensure activities column in the implementation timeline table renders as one-liners
+  const normalizeImplementationTimeline = (md: string): string => {
+    if (!md) return md
+    const lines = md.split('\n')
+    const out: string[] = []
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      // Match markdown table rows like: | Phase | Duration | Activities |
+      if (/^\|.*\|.*\|.*\|\s*$/.test(line)) {
+        const rawCells = line.split('|')
+        const visible = rawCells.slice(1, rawCells.length - 1)
+        if (visible.length >= 3) {
+          // Collapse whitespace and line breaks inside activities cell
+          visible[2] = String(visible[2] || '')
+            .replace(/<br\s*\/?>(\s*)/gi, ' ')
+            .replace(/\n+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+          out.push('|' + visible.map(v => ' ' + v.trim() + ' ').join('|') + '|')
+          continue
+        }
+      }
+      out.push(line)
+    }
+    return out.join('\n')
+  }
   const toc = sections.map((s, i) => ({ id: s.id, title: s.title || `Section ${i + 1}` }))
   const [pfdImage, setPfdImage] = useState<{ url: string; name: string } | null>(null)
   const [pfdSaved, setPfdSaved] = useState<boolean>(false)
@@ -478,7 +504,7 @@ function PreviewDocument({
             ) : s.id === 'implementation-timeline' ? (
               <div 
                 className="mt-2 text-sm leading-6 text-slate-700" 
-                dangerouslySetInnerHTML={{ __html: parseMarkdownTable(s.content || "Content not available yet.") }}
+                dangerouslySetInnerHTML={{ __html: parseMarkdownTable(normalizeImplementationTimeline(s.content || "Content not available yet.")) }}
               />
             ) : s.id === 'process-flow-diagram' ? (
               <div className="mt-2 text-sm leading-6 text-slate-700 process-flow-diagram-content">
@@ -704,6 +730,21 @@ function PreviewDocument({
                     })()}
                   </div>
                 )}
+              </div>
+            ) : s.id === 'key-features' ? (
+              <div className="mt-2 text-sm leading-6 text-slate-700">
+                <div className="prose prose-sm max-w-none">
+                  {s.content ? (
+                    <div dangerouslySetInnerHTML={{ 
+                      __html: s.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/●/g, '•')
+                        .replace(/\n/g, '<br>')
+                    }} />
+                  ) : (
+                    <p>Content not available yet.</p>
+                  )}
+                </div>
               </div>
             ) : s.id === 'screenshots' ? (
               <div className="mt-2 text-sm leading-6 text-slate-700">

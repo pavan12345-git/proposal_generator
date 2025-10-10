@@ -89,11 +89,18 @@ export default function FinalReviewPage() {
     } catch {}
 
     try {
-      const storedScreenshots = localStorage.getItem('screenshots')
+      // Look for screenshots with the correct key pattern
+      const storedScreenshots = localStorage.getItem('screenshots_screenshots')
       if (storedScreenshots) {
-        setScreenshots(JSON.parse(storedScreenshots))
+        const parsedScreenshots = JSON.parse(storedScreenshots)
+        console.log('📸 Loaded screenshots from localStorage:', parsedScreenshots)
+        setScreenshots(parsedScreenshots)
+      } else {
+        console.log('📸 No screenshots found in localStorage with key: screenshots_screenshots')
       }
-    } catch {}
+    } catch (error) {
+      console.error('📸 Error loading screenshots:', error)
+    }
   }, [])
 
   const approveSection = (id: string) => {
@@ -182,7 +189,7 @@ export default function FinalReviewPage() {
     setTimeout(() => setSaved(true), 700)
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!allApproved) return
     setDownloading(true)
     
@@ -191,7 +198,15 @@ export default function FinalReviewPage() {
       const approvedSections = sections.filter(s => s.status === "approved")
       
       // Create document content
-      const documentContent = generateDocumentContent(approvedSections)
+      let documentContent = generateDocumentContent(approvedSections)
+      
+      // Embed images as data URLs so they render in the print window
+      try {
+        documentContent = await embedImagesAsDataUrls(documentContent)
+      } catch (e) {
+        // Fallback: proceed without embedding if conversion fails
+        console.warn('Image embedding failed, proceeding with original URLs', e)
+      }
       
       if (exportFormat === "PDF") {
         downloadAsPDF(documentContent)
@@ -209,6 +224,75 @@ export default function FinalReviewPage() {
     }
   }
 
+  // Convert known image URLs (screenshots, diagrams) to data URLs and replace in content
+  const embedImagesAsDataUrls = async (content: string): Promise<string> => {
+    const urlSet = new Set<string>()
+    if (pfdImage?.url) urlSet.add(pfdImage.url)
+    taImages.forEach(img => img.url && urlSet.add(img.url))
+    screenshots.forEach(img => img.url && urlSet.add(img.url))
+
+    console.log('🖼️ Images to embed:', Array.from(urlSet))
+    console.log('📸 Screenshots state:', screenshots)
+
+    const urlToData: Record<string, string> = {}
+
+    await Promise.all(
+      Array.from(urlSet).map(async (url) => {
+        try {
+          console.log('🔄 Converting URL to data URL:', url)
+          const dataUrl = await toDataUrl(url)
+          if (dataUrl) {
+            urlToData[url] = dataUrl
+            console.log('✅ Successfully converted:', url, '->', dataUrl.substring(0, 50) + '...')
+          } else {
+            console.log('❌ Failed to convert URL:', url)
+          }
+        } catch (e) {
+          console.error('❌ Error converting URL:', url, e)
+        }
+      })
+    )
+
+    console.log('🔄 URL replacements:', Object.keys(urlToData).length, 'URLs converted')
+
+    let updated = content
+    for (const [orig, data] of Object.entries(urlToData)) {
+      // Use split/join to avoid regex escaping issues
+      updated = updated.split(orig).join(data)
+    }
+    return updated
+  }
+
+  const toDataUrl = async (url: string): Promise<string> => {
+    try {
+      // Handle object URLs (blob URLs) differently
+      if (url.startsWith('blob:')) {
+        // For object URLs, we need to fetch them differently
+        const res = await fetch(url)
+        const blob = await res.blob()
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(String(reader.result || ''))
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+      } else {
+        // For regular URLs, use the existing logic
+        const res = await fetch(url)
+        const blob = await res.blob()
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(String(reader.result || ''))
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+      }
+    } catch (e) {
+      console.warn('Failed to convert URL to data URL:', url, e)
+      return ''
+    }
+  }
+
   const generateDocumentContent = (approvedSections: Section[]) => {
     const proposalData = JSON.parse(localStorage.getItem("currentProposal") || "{}")
     const requirements = proposalData.requirements || {}
@@ -216,12 +300,9 @@ export default function FinalReviewPage() {
     let content = `
 # PROJECT PROPOSAL
 
-**Project:** ${requirements.projectDescription || "Custom Project"}
-**Timeline:** ${requirements.timeline || "TBD"}
-**Budget:** ${requirements.budgetRange || "TBD"}
-**Date:** ${new Date().toLocaleDateString()}
+## Table of Contents
 
----
+${approvedSections.map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
 
 `
 
@@ -244,31 +325,121 @@ export default function FinalReviewPage() {
       }
       
       if (section.id === 'screenshots' && screenshots.length > 0) {
+        console.log('📸 Adding screenshots to document content:', screenshots)
         content += `**Screenshots:**\n`
         screenshots.forEach((img, imgIndex) => {
           content += `\n**Screenshot ${imgIndex + 1}:** ${img.name}\n`
           content += `![${img.name}](${img.url})\n`
         })
         content += `\n`
+      } else if (section.id === 'screenshots') {
+        console.log('📸 Screenshots section but no screenshots found. Screenshots state:', screenshots)
       }
       
-      // Add section content
-      content += `${section.content}\n\n`
-      content += `---\n\n`
+      // Add section content (with special normalization for timeline activities)
+      let sectionBody = section.content
+      if (section.id === 'implementation-timeline') {
+        sectionBody = normalizeImplementationTimeline(sectionBody)
+      }
+      content += `${sectionBody}\n\n`
     })
     
     return content
   }
 
-  const downloadAsPDF = (content: string) => {
-    // Create a new window with the content
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) return
-    
-    // Convert markdown tables to HTML tables
-    const convertMarkdownToHTML = (text: string) => {
+  // Ensure activities column in the implementation timeline table is a single line per row
+  const normalizeImplementationTimeline = (md: string): string => {
+    const lines = md.split('\n')
+    const out: string[] = []
+    let inTable = false
+    let currentRow = null
+
+    const flushRow = () => {
+      if (!currentRow) return
+      if (currentRow.cells.length >= 3) {
+        // Aggressively collapse Activities column to single line
+        currentRow.cells[2] = String(currentRow.cells[2] || '')
+          .replace(/<br\s*\/?>(\s*)/gi, ' ')
+          .replace(/\*\*/g, '')
+          .replace(/\n+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .replace(/\.\s+/g, '. ')
+          .replace(/;\s+/g, '; ')
+          .replace(/,\s+/g, ', ')
+          .trim()
+      }
+      out.push('|' + currentRow.cells.map(c => ' ' + String(c).trim() + ' ').join('|') + '|')
+      currentRow = null
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      
+      // Detect table header and separator
+      if (!inTable && /^\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\|[-:\s|]+\|\s*$/.test(lines[i + 1])) {
+        inTable = true
+        out.push(line)
+        out.push(lines[i + 1])
+        i++
+        continue
+      }
+
+      if (inTable) {
+        if (/^\|.*\|\s*$/.test(line)) {
+          // New row begins
+          flushRow()
+          const cells = line.split('|').slice(1, -1)
+          currentRow = { cells }
+          continue
+        }
+        // Continuation line inside table → append to Activities (3rd col)
+        if (currentRow) {
+          if (currentRow.cells.length >= 3) {
+            const add = line.trim()
+            if (add) currentRow.cells[2] = (currentRow.cells[2] || '') + ' ' + add
+          }
+          continue
+        }
+      }
+
+      // Close row if we leave table
+      if (currentRow) flushRow()
+      if (inTable && line.trim() === '') {
+        inTable = false
+      }
+      out.push(line)
+    }
+
+    if (currentRow) flushRow()
+    return out.join('\n')
+  }
+
+  // Convert markdown tables to HTML tables
+  const convertMarkdownToHTML = (text: string) => {
       let html = text
       
+      // Remove Mermaid code blocks and directives (keep only rendered images)
+      html = html
+        // fenced mermaid blocks
+        .replace(/```mermaid[\s\S]*?```/g, '')
+        // other common mermaid-style fenced diagrams
+        .replace(/```sequenceDiagram[\s\S]*?```/g, '')
+        .replace(/```graph[\s\S]*?```/g, '')
+        // single-line directives
+        .replace(/^graph\s+[A-Za-z]+.*$/gim, '')
+        .replace(/^sequenceDiagram.*$/gim, '')
+
+      // Remove instructional lines related to Mermaid usage and their headings
+      html = html
+        // Remove the specific copy instruction line (case-insensitive)
+        .replace(/^Copy this code to https?:\/\/mermaid\.live.*$/gim, '')
+        // Remove trailing 'below.' helper line if present on its own
+        .replace(/^below\.?\s*$/gim, '')
+        // Remove any lines mentioning upload button instruction
+        .replace(/^.*then upload using the button.*$/gim, '')
+        // Remove headings for these instruction blocks
+        .replace(/^(?:#{1,3}\s*)?(System Architecture|Component Architecture)\s*$/gim, '')
+
       // Convert markdown tables to HTML tables
       html = html.replace(/\|(.+)\|\n\|[-\s|]+\|\n((?:\|.+\|\n?)*)/g, (match, header, rows) => {
         const headerCells = header.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell)
@@ -278,20 +449,22 @@ export default function FinalReviewPage() {
         
         // Add header
         tableHTML += '<thead><tr>'
-        headerCells.forEach((cell: string) => {
-          tableHTML += `<th style="border: 1px solid #ddd; padding: 12px; text-align: left; background-color: #f3f4f6; font-weight: bold;">${cell}</th>`
+        headerCells.forEach((cell: string, idx: number) => {
+          const align = (cell === 'Estimate' || cell === 'Amount' || cell === 'Estimated Cost') ? 'right' : 'left'
+          tableHTML += `<th style="border: 1px solid #ddd; padding: 12px; text-align: ${align}; background-color: #f3f4f6; font-weight: bold;">${cell}</th>`
         })
         tableHTML += '</tr></thead>'
         
         // Add rows
         tableHTML += '<tbody>'
         rowLines.forEach((row: string) => {
-          const cells = row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell)
+          const cells = row.split('|').slice(1, -1).map((cell: string) => cell.trim())
           tableHTML += '<tr>'
-          cells.forEach((cell: string) => {
+          cells.forEach((cell: string, idx: number) => {
             // Handle bold text in cells
             const formattedCell = cell.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            tableHTML += `<td style="border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: top;">${formattedCell}</td>`
+            const align = (headerCells[idx] === 'Estimate' || headerCells[idx] === 'Amount' || headerCells[idx] === 'Estimated Cost') ? 'right' : 'left'
+            tableHTML += `<td style="border: 1px solid #ddd; padding: 12px; text-align: ${align}; vertical-align: top;">${formattedCell}</td>`
           })
           tableHTML += '</tr>'
         })
@@ -300,6 +473,16 @@ export default function FinalReviewPage() {
         return tableHTML
       })
       
+      // Convert markdown images to HTML images with captions
+      html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (_m, alt, src) => {
+        const safeAlt = String(alt || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        const safeSrc = String(src || '')
+        return `<figure style="margin: 16px 0;">
+  <img src="${safeSrc}" alt="${safeAlt}" style="max-width: 100%; height: auto; display: block; margin: 8px 0;" />
+  ${safeAlt ? `<figcaption style="font-size: 12px; color: #6b7280;">${safeAlt}</figcaption>` : ''}
+</figure>`
+      })
+
       // Convert other markdown elements
       html = html
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -307,24 +490,37 @@ export default function FinalReviewPage() {
         .replace(/^### (.*$)/gim, '<h3 style="color: #374151; margin-top: 20px;">$1</h3>')
         .replace(/^## (.*$)/gim, '<h2 style="color: #1e40af; margin-top: 30px;">$1</h2>')
         .replace(/^# (.*$)/gim, '<h1 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">$1</h1>')
-        // Handle bullet lists
-        .replace(/((?:^\- .*\n?)+)/gim, (match) => {
+        // Handle bullet lists (both - and ● bullets)
+        .replace(/((?:^[\-●] .*\n?)+)/gim, (match) => {
           const items = match.trim().split('\n').filter(line => line.trim())
           return '<ul style="margin: 10px 0; padding-left: 30px;">' + 
-                 items.map(item => `<li style="margin: 5px 0;">${item.replace(/^\- /, '')}</li>`).join('') + 
+                 items.map(item => `<li style="margin: 5px 0; font-size: 14px;">${item.replace(/^[\-●] /, '')}</li>`).join('') + 
                  '</ul>'
         })
         // Handle numbered lists
         .replace(/((?:^\d+\. .*\n?)+)/gim, (match) => {
           const items = match.trim().split('\n').filter(line => line.trim())
           return '<ol style="margin: 10px 0; padding-left: 30px;">' + 
-                 items.map(item => `<li style="margin: 5px 0;">${item.replace(/^\d+\. /, '')}</li>`).join('') + 
+                 items.map(item => `<li style="margin: 5px 0; font-size: 14px;">${item.replace(/^\d+\. /, '')}</li>`).join('') + 
                  '</ol>'
         })
         .replace(/\n/g, '<br>')
       
+      // Wrap each H2 section and its following content to next H2/end in a non-breaking container
+      try {
+        const sectionRegex = /<h2[^>]*>[\s\S]*?(?=(<h2[^>]*>|$))/g
+        html = html.replace(sectionRegex, (block) => {
+          return `<div class="section-keep" style="break-inside: avoid-page; page-break-inside: avoid; margin-bottom: 18px;">${block}</div>`
+        })
+      } catch {}
+      
       return html
-    }
+  }
+
+  const downloadAsPDF = (content: string) => {
+    // Create a new window with the content
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
     
     const htmlContent = `
       <!DOCTYPE html>
@@ -332,6 +528,7 @@ export default function FinalReviewPage() {
         <head>
           <title>Project Proposal</title>
           <style>
+            @page { margin: 0.75in; }
             body {
               font-family: Arial, sans-serif;
               line-height: 1.6;
@@ -342,13 +539,33 @@ export default function FinalReviewPage() {
             h1 { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
             h2 { color: #1e40af; margin-top: 30px; }
             h3 { color: #374151; }
-            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+            table { border-collapse: collapse; width: 100%; margin: clamp(12px, 1.6vh, 22px) 0; }
             th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
             th { background-color: #f3f4f6; }
-            ul, ol { margin: 10px 0; padding-left: 30px; }
+            ul, ol { margin: clamp(8px, 1.2vh, 16px) 0; padding-left: 30px; }
             li { margin: 5px 0; }
-            img { max-width: 100%; height: auto; margin: 10px 0; }
+            img { max-width: 100%; height: auto; margin: clamp(8px, 1.2vh, 18px) 0; }
             .page-break { page-break-before: always; }
+            /* Tighten spacing and keep sections intact */
+            .section-keep { break-inside: avoid-page; page-break-inside: avoid; margin: clamp(12px, 1.8vh, 28px) 0; }
+            .section-keep h2 { margin-bottom: 6px; page-break-after: avoid; break-after: avoid-page; }
+            /* Tighten spacing between headings and first content block */
+            h1, h2, h3 { page-break-after: avoid; break-after: avoid-page; margin-bottom: 8px; }
+            h1 + p, h2 + p, h3 + p,
+            h1 + table, h2 + table, h3 + table,
+            h1 + ul, h2 + ul, h3 + ul,
+            h1 + ol, h2 + ol, h3 + ol,
+            h1 + div, h2 + div, h3 + div { margin-top: 6px; }
+            /* Prevent content blocks from splitting across pages */
+            p, table, thead, tbody, tr, ul, ol, li, img, blockquote, pre { page-break-inside: avoid; break-inside: avoid-page; orphans: 2; widows: 2; }
+            /* Slightly tighter default margins to reduce wasted space */
+            p { margin: clamp(6px, 1vh, 14px) 0; }
+            table { margin: 16px 0; }
+            img { margin: 8px 0; }
+            /* Keep table headers with following rows */
+            thead { page-break-after: avoid; break-after: avoid-page; }
+            /* Add consistent bottom spacing between logical sections */
+            .section-block { margin-bottom: clamp(12px, 1.6vh, 24px); }
             @media print {
               body { margin: 0; }
               .page-break { page-break-before: always; }
@@ -357,18 +574,33 @@ export default function FinalReviewPage() {
         </head>
         <body>
           ${convertMarkdownToHTML(content)}
+          <script>
+            (function() {
+              function done() {
+                setTimeout(function(){ window.print(); window.close(); }, 200);
+              }
+              var imgs = Array.prototype.slice.call(document.images || []);
+              if (!imgs.length) { return done(); }
+              var loaded = 0;
+              function check(){
+                loaded++;
+                if (loaded >= imgs.length) { done(); }
+              }
+              imgs.forEach(function(img){
+                if (img.complete) { return check(); }
+                img.addEventListener('load', check);
+                img.addEventListener('error', check);
+              });
+              // Fallback timeout in case some images never fire events
+              setTimeout(done, 4000);
+            })();
+          </script>
         </body>
       </html>
     `
     
     printWindow.document.write(htmlContent)
     printWindow.document.close()
-    
-    // Wait for content to load, then print
-    setTimeout(() => {
-      printWindow.print()
-      printWindow.close()
-    }, 1000)
   }
 
   const downloadAsWord = (content: string) => {
@@ -408,7 +640,7 @@ export default function FinalReviewPage() {
 
   const renderSectionContent = (section: Section) => {
     if (section.editing) {
-      return (
+  return (
         <div className="space-y-4">
           <Textarea
             value={section.content}
@@ -432,8 +664,8 @@ export default function FinalReviewPage() {
             >
               Cancel
             </Button>
-          </div>
-        </div>
+                    </div>
+                  </div>
       )
     }
 
@@ -448,40 +680,50 @@ export default function FinalReviewPage() {
                 <p className="text-sm text-gray-600 mt-2">{img.name}</p>
               </div>
             ))}
-          </div>
+                      </div>
           <div 
             className="prose max-w-none"
             dangerouslySetInnerHTML={{ 
               __html: parseMarkdownTable(section.content) 
             }}
           />
-        </div>
+                      </div>
       )
     }
 
     if (section.id === 'process-flow-diagram' && pfdImage) {
-      return (
+                              return (
         <div className="space-y-4">
           <div className="border rounded-lg p-4">
             <img src={pfdImage.url} alt={pfdImage.name} className="w-full h-auto rounded" />
             <p className="text-sm text-gray-600 mt-2">{pfdImage.name}</p>
-          </div>
-        </div>
-      )
+                                  </div>
+                                </div>
+                              )
+                            }
+
+    if (section.id === 'key-features') {
+                          return (
+        <div className="prose max-w-none">
+          <div dangerouslySetInnerHTML={{
+            __html: convertMarkdownToHTML(section.content)
+          }} />
+                            </div>
+                          )
     }
 
     if (section.id === 'screenshots' && screenshots.length > 0) {
-      return (
+                                return (
         <div className="space-y-4">
           <div className="grid gap-4">
             {screenshots.map((img) => (
               <div key={img.id} className="border rounded-lg p-4">
                 <img src={img.url} alt={img.name} className="w-full h-auto rounded" />
                 <p className="text-sm text-gray-600 mt-2">{img.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
       )
     }
 
@@ -520,14 +762,14 @@ export default function FinalReviewPage() {
   }
 
   if (loading) {
-    return (
+                          return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading proposal sections...</p>
         </div>
-      </div>
-    )
+                            </div>
+                          )
   }
 
   return (
@@ -557,7 +799,7 @@ export default function FinalReviewPage() {
               <div className="text-sm text-gray-600">
                 {progress.approved} of {progress.total} sections approved
               </div>
-            </div>
+                      </div>
             
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
               <div 
@@ -582,14 +824,14 @@ export default function FinalReviewPage() {
                 </Badge>
               </div>
             </div>
-          </div>
+                    </div>
         </div>
 
         {/* Sections */}
         <div className="space-y-6">
           {sections.map((section, index) => (
             <Card key={section.id} className="shadow-sm">
-              <CardHeader>
+            <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">
                     {index + 1}. {section.title}
@@ -613,9 +855,9 @@ export default function FinalReviewPage() {
                     </Badge>
                   </div>
                 </div>
-              </CardHeader>
+            </CardHeader>
               
-              <CardContent>
+            <CardContent>
                 <div className="space-y-4">
                   {/* Content */}
                   {renderSectionContent(section)}
@@ -653,8 +895,8 @@ export default function FinalReviewPage() {
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+            </CardContent>
+          </Card>
           ))}
         </div>
 
@@ -672,12 +914,12 @@ export default function FinalReviewPage() {
               
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Export Format:</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
                       {exportFormat}
-                    </Button>
-                  </DropdownMenuTrigger>
+                  </Button>
+                </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <DropdownMenuItem onClick={() => setExportFormat("PDF")}>
                       PDF
@@ -688,32 +930,32 @@ export default function FinalReviewPage() {
                     <DropdownMenuItem onClick={() => setExportFormat("PowerPoint")}>
                       PowerPoint
                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
               </div>
             </div>
 
-            <Button 
+              <Button
               onClick={handleDownload}
               disabled={!allApproved || downloading}
-              className={cn(
+                className={cn(
                 "bg-blue-600 hover:bg-blue-700",
                 (!allApproved || downloading) && "opacity-50 cursor-not-allowed"
               )}
             >
               {downloading ? "Downloading..." : "Download Proposal"}
-            </Button>
-          </div>
-          
+                </Button>
+              </div>
+
           {!allApproved && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm text-yellow-800">
                 ⚠️ All sections must be approved before downloading the proposal.
               </p>
             </div>
-          )}
-        </div>
+                )}
+              </div>
       </div>
-    </div>
+        </div>
   )
 }

@@ -32,6 +32,7 @@ type SectionKey =
   | "the-problem"
   | "our-solution"
   | "screenshots"
+  | "key-features"
   | "key-value-propositions"
   | "process-flow-diagram"
   | "technical-architecture"
@@ -87,6 +88,13 @@ const allSections: Section[] = [
     description: "Representative UI screens, mockups, or examples illustrating the experience.",
     pages: "1–3",
     Icon: ImageIcon,
+  },
+  {
+    key: "key-features",
+    title: "Key Features",
+    description: "Core functionality and capabilities that define the solution's value proposition.",
+    pages: "1–2",
+    Icon: Star,
   },
   {
     key: "key-value-propositions",
@@ -410,7 +418,7 @@ export default function ContentIndexPage() {
 
           {/* Bottom actions */}
           <div className="mt-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <div className="text-sm text-slate-600">{count} of 16 sections selected</div>
+            <div className="text-sm text-slate-600">{count} of 17 sections selected</div>
             <div className="flex items-center gap-2">
               <button
                 type="button"

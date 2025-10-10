@@ -62,6 +62,43 @@ export async function POST(request) {
             generatedAt: new Date().toISOString(),
             version: 1
           },
+          'key-features': {
+            id: 'key-features',
+            title: 'Key Features',
+            content: `**1. Core Functionality**
+● Essential business operations
+● User management and authentication
+● Data processing and storage
+
+**2. User Experience**
+● Intuitive interface design
+● Mobile-responsive layout
+● Accessibility compliance
+
+**3. Integration Capabilities**
+● Third-party API connections
+● Database synchronization
+● Real-time data updates
+
+**4. Security & Compliance**
+● Data encryption and protection
+● User access controls
+● Audit trail functionality
+
+**5. Performance & Scalability**
+● High-speed processing
+● Cloud-based infrastructure
+● Scalable architecture
+
+**6. Analytics & Reporting**
+● Business intelligence dashboards
+● Custom reporting tools
+● Performance metrics tracking`,
+            status: 'Complete',
+            approved: false,
+            generatedAt: new Date().toISOString(),
+            version: 1
+          },
           'key-value-propositions': {
             id: 'key-value-propositions',
             title: 'Key Value Propositions',
@@ -149,6 +186,7 @@ export async function POST(request) {
           throw new Error('generateImplementationTimeline function not found');
         }
         content = await generateImplementationTimeline(formData);
+        content = normalizeImplementationTimeline(content);
         console.log('✅ Generated implementation-timeline successfully');
       } else if (formData.sectionType === 'process-flow-diagram') {
         console.log('🔄 Generating process-flow-diagram...');
@@ -235,7 +273,7 @@ Please generate professional, detailed content for this section that aligns with
       console.log('🎯 API: Processing selected sections request');
       console.log('📋 Selected sections received:', formData.selectedSections);
       
-      const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline, generateProcessFlowDiagram, generateTechnicalArchitecture } = await import('@/lib/claude-client');
+      const { generateExecutiveSummary, generateProjectOverview, generateTheProblem, generateOurSolution, generateKeyFeatures, generateKeyValuePropositions, generateBenefitsAndROI, generateNextSteps, generateDevelopmentCost, generateAdditionalFeatures, generateOperationalCosts, generateMonthlyRetainerFee, generateTotalInvestment, generateImplementationTimeline, generateProcessFlowDiagram, generateTechnicalArchitecture } = await import('@/lib/claude-client');
       
       const selectedSectionIds = formData.selectedSections.map(s => s.id);
       console.log('🔍 Selected section IDs:', selectedSectionIds);
@@ -279,6 +317,43 @@ Please generate professional, detailed content for this section that aligns with
           sectionsToGenerate['our-solution'] = `Our ${formData.projectTitle || 'project'} is designed to streamline your business operations while improving user experience. The platform provides comprehensive functionality to help your business achieve better results and operational efficiency.`;
         }
       }
+      if (selectedSectionIds.includes('key-features')) {
+        console.log('✅ Generating key-features');
+        try {
+          sectionsToGenerate['key-features'] = await generateKeyFeatures(formData);
+        } catch (error) {
+          console.log('⚠️ Failed to generate key-features, using fallback');
+          sectionsToGenerate['key-features'] = `**1. Core Functionality**
+● Essential business operations
+● User management and authentication
+● Data processing and storage
+
+**2. User Experience**
+● Intuitive interface design
+● Mobile-responsive layout
+● Accessibility compliance
+
+**3. Integration Capabilities**
+● Third-party API connections
+● Database synchronization
+● Real-time data updates
+
+**4. Security & Compliance**
+● Data encryption and protection
+● User access controls
+● Audit trail functionality
+
+**5. Performance & Scalability**
+● High-speed processing
+● Cloud-based infrastructure
+● Scalable architecture
+
+**6. Analytics & Reporting**
+● Business intelligence dashboards
+● Custom reporting tools
+● Performance metrics tracking`;
+        }
+      }
       if (selectedSectionIds.includes('key-value-propositions')) {
         console.log('✅ Generating key-value-propositions');
         try {
@@ -312,7 +387,20 @@ Please generate professional, detailed content for this section that aligns with
           sectionsToGenerate['one-time-development-cost'] = await generateDevelopmentCost(formData);
         } catch (error) {
           console.log('⚠️ Failed to generate one-time-development-cost, using fallback');
-          sectionsToGenerate['one-time-development-cost'] = `Based on the project scope and requirements, the one-time development cost is estimated at ${formData.budgetRange || '$25K-50K'}. This includes all development, testing, and initial deployment activities.`;
+          sectionsToGenerate['one-time-development-cost'] = `Includes:
+• Full front end and back end development
+• Email parsing, matching algorithm
+• System testing
+• Production migration and DevOps
+
+| Component | Description | Estimate |
+|-----------|-------------|----------|
+| Front End Development | End-to-end website design and development | $ 500 |
+| Email Parsing | CSV and email parsing, data validation | $ 1000 |
+| Matching Algorithm | Core matching algorithms, confidence scoring | $ 1000 |
+| DevOps | GitHub workflows and code migration | $ 100 |
+| QA/Testing | Validate application flows and admin functionalities | $ 100 |
+| Development Cost |  | $ 2700 |`;
         }
       }
       if (selectedSectionIds.includes('additional-features-recommended')) {
@@ -354,10 +442,19 @@ Please generate professional, detailed content for this section that aligns with
       if (selectedSectionIds.includes('implementation-timeline')) {
         console.log('✅ Generating implementation-timeline');
         try {
-          sectionsToGenerate['implementation-timeline'] = await generateImplementationTimeline(formData);
+          sectionsToGenerate['implementation-timeline'] = normalizeImplementationTimeline(
+            await generateImplementationTimeline(formData)
+          );
         } catch (error) {
           console.log('⚠️ Failed to generate implementation-timeline, using fallback');
-          sectionsToGenerate['implementation-timeline'] = `Phase 1: Planning and Design (2-3 weeks)\nPhase 2: Development (6-8 weeks)\nPhase 3: Testing and QA (2-3 weeks)\nPhase 4: Deployment and Go-Live (1-2 weeks)\nTotal Timeline: 12-16 weeks`;
+          sectionsToGenerate['implementation-timeline'] = `| Phase | Duration | Activities |
+|-------|----------|-----------|
+| Requirements Gathering | 2-3 weeks | Finalize requirements |
+| Development | 6-8 weeks | Build application |
+| Testing and QA | 2-3 weeks | Comprehensive testing |
+| Deployment and Go-Live | 1-2 weeks | Production setup |
+| Training & Handover | 1 week | Documentation and knowledge transfer |
+| Total | 12-16 weeks | Complete project delivery |`;
         }
       }
       if (selectedSectionIds.includes('process-flow-diagram')) {
@@ -413,7 +510,7 @@ Please generate professional, detailed content for this section that aligns with
         proposalData.sections[sectionId] = {
           id: sectionId,
           title: sectionTitles[sectionId],
-          content: content,
+          content: sectionId === 'implementation-timeline' ? normalizeImplementationTimeline(content) : content,
           status: 'Complete',
           approved: false,
           generatedAt: new Date().toISOString(),
@@ -488,6 +585,43 @@ Please generate professional, detailed content for this section that aligns with
             generatedAt: new Date().toISOString(),
             version: 1
           },
+          'key-features': {
+            id: 'key-features',
+            title: 'Key Features',
+            content: `**1. Core Functionality**
+● Essential business operations
+● User management and authentication
+● Data processing and storage
+
+**2. User Experience**
+● Intuitive interface design
+● Mobile-responsive layout
+● Accessibility compliance
+
+**3. Integration Capabilities**
+● Third-party API connections
+● Database synchronization
+● Real-time data updates
+
+**4. Security & Compliance**
+● Data encryption and protection
+● User access controls
+● Audit trail functionality
+
+**5. Performance & Scalability**
+● High-speed processing
+● Cloud-based infrastructure
+● Scalable architecture
+
+**6. Analytics & Reporting**
+● Business intelligence dashboards
+● Custom reporting tools
+● Performance metrics tracking`,
+            status: 'Complete',
+            approved: false,
+            generatedAt: new Date().toISOString(),
+            version: 1
+          },
           'key-value-propositions': {
             id: 'key-value-propositions',
             title: 'Key Value Propositions',
@@ -518,7 +652,20 @@ Please generate professional, detailed content for this section that aligns with
           'one-time-development-cost': {
             id: 'one-time-development-cost',
             title: 'One Time Development Cost',
-            content: `Based on the project scope and requirements, the one-time development cost is estimated at ${formData.budgetRange || '$25K-50K'}. This includes all development, testing, and initial deployment activities.`,
+            content: `Includes:
+• Full front end and back end development
+• Email parsing, matching algorithm
+• System testing
+• Production migration and DevOps
+
+| Component | Description | Estimate |
+|-----------|-------------|----------|
+| Front End Development | End-to-end website design and development | $ 500 |
+| Email Parsing | CSV and email parsing, data validation | $ 1000 |
+| Matching Algorithm | Core matching algorithms, confidence scoring | $ 1000 |
+| DevOps | GitHub workflows and code migration | $ 100 |
+| QA/Testing | Validate application flows and admin functionalities | $ 100 |
+| Development Cost |  | $ 2700 |`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -563,7 +710,14 @@ Please generate professional, detailed content for this section that aligns with
           'implementation-timeline': {
             id: 'implementation-timeline',
             title: 'Implementation Timeline',
-            content: `Phase 1: Planning and Design (2-3 weeks)\nPhase 2: Development (6-8 weeks)\nPhase 3: Testing and QA (2-3 weeks)\nPhase 4: Deployment and Go-Live (1-2 weeks)\nTotal Timeline: 12-16 weeks`,
+            content: `| Phase | Duration | Activities |
+|-------|----------|-----------|
+| Requirements Gathering | 2-3 weeks | Finalize requirements |
+| Development | 6-8 weeks | Build application |
+| Testing and QA | 2-3 weeks | Comprehensive testing |
+| Deployment and Go-Live | 1-2 weeks | Production setup |
+| Training & Handover | 1 week | Documentation and knowledge transfer |
+| Total | 12-16 weeks | Complete project delivery |`,
             status: 'Complete',
             approved: false,
             generatedAt: new Date().toISOString(),
@@ -693,5 +847,76 @@ Please generate professional, detailed content for this section that aligns with
       { error: 'Internal server error. Please try again later.' },
       { status: 500 }
     );
+  }
+}
+
+// Normalize Implementation Timeline markdown so Activities column is a single line
+function normalizeImplementationTimeline(md) {
+  try {
+    if (!md || typeof md !== 'string') return md;
+    const lines = md.split('\n');
+    const out = [];
+    let inTable = false;
+    let currentRow = null; // {cells: string[]}
+
+    const pushRow = () => {
+      if (!currentRow) return;
+      if (currentRow.cells.length >= 3) {
+        // Aggressively collapse Activities column to single line
+        currentRow.cells[2] = String(currentRow.cells[2] || '')
+          .replace(/<br\s*\/?>(\s*)/gi, ' ')
+          .replace(/\*\*/g, '')
+          .replace(/\n+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .replace(/\.\s+/g, '. ')
+          .replace(/;\s+/g, '; ')
+          .replace(/,\s+/g, ', ')
+          .trim();
+      }
+      out.push('|' + currentRow.cells.map(c => ' ' + String(c).trim() + ' ').join('|') + '|');
+      currentRow = null;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // detect table header and separator
+      if (!inTable && /^\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\|[-:\s|]+\|\s*$/.test(lines[i + 1])) {
+        inTable = true;
+        out.push(line);
+        out.push(lines[i + 1]);
+        i++;
+        continue;
+      }
+
+      if (inTable) {
+        if (/^\|.*\|\s*$/.test(line)) {
+          // new row begins
+          pushRow();
+          const cells = line.split('|').slice(1, -1);
+          currentRow = { cells };
+          continue;
+        }
+        // continuation line inside table → append to Activities (3rd col)
+        if (currentRow) {
+          if (currentRow.cells.length >= 3) {
+            const add = line.trim();
+            if (add) currentRow.cells[2] = (currentRow.cells[2] || '') + ' ' + add;
+          }
+          continue;
+        }
+      }
+
+      // close row if we leave table
+      if (currentRow) pushRow();
+      if (inTable && line.trim() === '') {
+        inTable = false;
+      }
+      out.push(line);
+    }
+
+    if (currentRow) pushRow();
+    return out.join('\n');
+  } catch {
+    return md;
   }
 }
