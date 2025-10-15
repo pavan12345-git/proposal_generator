@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { parseMarkdownTable, formatProjectOverviewContent, formatKeyValuePropositionsContent, extractTechStackContent, formatTechStackContent } from "@/lib/proposal-utils"
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, ImageRun, ExternalHyperlink, convertInchesToTwip } from "docx"
+import { saveAs } from "file-saver"
 
 type SectionStatus = "approved" | "rejected" | "pending"
 type Section = {
@@ -31,8 +33,9 @@ export default function FinalReviewPage() {
   const [loading, setLoading] = useState(true)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const [downloadingDocs, setDownloadingDocs] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [exportFormat, setExportFormat] = useState<"PDF" | "Word" | "PowerPoint">("PDF")
+  const [exportFormat, setExportFormat] = useState<"PDF">("PDF")
   const [pfdImage, setPfdImage] = useState<{ url: string; name: string } | null>(null)
   const [taImages, setTaImages] = useState<ImageItem[]>([])
   const [screenshots, setScreenshots] = useState<ImageItem[]>([])
@@ -105,6 +108,20 @@ export default function FinalReviewPage() {
 
   const approveSection = (id: string) => {
     setSections(prev => prev.map(s => s.id === id ? { ...s, status: "approved" } : s))
+  }
+
+  const handleDownloadDocs = async () => {
+    if (!allApproved) return
+    setDownloadingDocs(true)
+    try {
+      const approvedSections = sections.filter(s => s.status === "approved")
+      await generateWordDocument(approvedSections)
+    } catch (error) {
+      console.error("Error generating docs:", error)
+      alert("Error generating docs. Please try again.")
+    } finally {
+      setDownloadingDocs(false)
+    }
   }
 
   const rejectSection = (id: string) => {
@@ -208,13 +225,7 @@ export default function FinalReviewPage() {
         console.warn('Image embedding failed, proceeding with original URLs', e)
       }
       
-      if (exportFormat === "PDF") {
-        downloadAsPDF(documentContent)
-      } else if (exportFormat === "Word") {
-        downloadAsWord(documentContent)
-      } else if (exportFormat === "PowerPoint") {
-        downloadAsPowerPoint(documentContent)
-      }
+      downloadAsPDF(documentContent)
       
       setDownloading(false)
     } catch (error) {
@@ -345,6 +356,413 @@ ${approvedSections.map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
     })
     
     return content
+  }
+
+  // Generate Word document mirroring the PDF content and images
+  const generateWordDocument = async (approvedSections: Section[]) => {
+    const proposalData = JSON.parse(localStorage.getItem("currentProposal") || "{}")
+    const requirements = proposalData.requirements || {}
+    
+    // Helper: fetch image bytes
+    const fetchImageBytes = async (url: string): Promise<Uint8Array | null> => {
+      try {
+        const res = await fetch(url)
+        const blob = await res.blob()
+        const buf = await blob.arrayBuffer()
+        return new Uint8Array(buf)
+      } catch (e) {
+        console.warn('DOCX image fetch failed:', url, e)
+        return null
+      }
+    }
+
+    // Helper: create image run with width similar to PDF content width
+    const imageRunFromBytes = (bytes: Uint8Array) => new ImageRun({ data: bytes, transformation: { width: 520, height: 0 } })
+
+    // Create document children array
+    const children: (Paragraph | Table)[] = []
+    
+    // Add title - matching PDF h1 styling (color: #2563eb, border-bottom: 2px solid #2563eb)
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "PROJECT PROPOSAL",
+            bold: true,
+            size: 32,
+            color: "2563eb", // Blue color matching PDF
+          }),
+        ],
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
+        border: {
+          bottom: {
+            color: "2563eb",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 2,
+          },
+        },
+      })
+    )
+    
+    // Add table of contents - matching PDF h2 styling (color: #1e40af)
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "Table of Contents",
+            bold: true,
+            size: 24,
+            color: "1e40af", // Darker blue matching PDF h2
+          }),
+        ],
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 200, after: 200 },
+      })
+    )
+    
+    approvedSections.forEach((section, index) => {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `${index + 1}. ${section.title}`,
+              size: 20,
+              font: "Arial", // Matching PDF font-family: Arial
+            }),
+          ],
+          spacing: { after: 100 },
+        })
+      )
+    })
+    
+    // Add sections (use for...of to allow awaiting image fetches)
+    for (let index = 0; index < approvedSections.length; index++) {
+      const section = approvedSections[index]
+      // Add section heading - matching PDF h2 styling (color: #1e40af, margin-top: 30px)
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `${index + 1}. ${section.title}`,
+              bold: true,
+              size: 24,
+              color: "1e40af", // Darker blue matching PDF h2
+            }),
+          ],
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 600, after: 200 }, // 30px = ~600 twips
+        })
+      )
+      
+      // Handle special sections with images (embed like PDF)
+      if (section.id === 'technical-architecture' && taImages.length > 0) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Technical Architecture Diagrams:",
+                bold: true,
+                size: 20,
+                font: "Arial", // Matching PDF font-family: Arial
+              }),
+            ],
+            spacing: { after: 200 },
+          })
+        )
+        
+        for (let imgIndex = 0; imgIndex < taImages.length; imgIndex++) {
+          const img = taImages[imgIndex]
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Diagram ${imgIndex + 1}: ${img.name}`,
+                  bold: true,
+                  size: 18,
+                }),
+              ],
+              spacing: { after: 100 },
+            })
+          )
+          const bytes = await fetchImageBytes(img.url)
+          if (bytes) {
+            children.push(new Paragraph({ children: [imageRunFromBytes(bytes)] }))
+          }
+        }
+      }
+      
+      if (section.id === 'process-flow-diagram' && pfdImage) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Process Flow Diagram:",
+                bold: true,
+                size: 20,
+                font: "Arial", // Matching PDF font-family: Arial
+              }),
+            ],
+            spacing: { after: 200 },
+          })
+        )
+        
+        if (pfdImage.url) {
+          const bytes = await fetchImageBytes(pfdImage.url)
+          if (bytes) {
+            children.push(new Paragraph({ children: [imageRunFromBytes(bytes)] }))
+          }
+        }
+      }
+      
+      if (section.id === 'screenshots' && screenshots.length > 0) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Screenshots:",
+                bold: true,
+                size: 20,
+                font: "Arial", // Matching PDF font-family: Arial
+              }),
+            ],
+            spacing: { after: 200 },
+          })
+        )
+        
+        for (let imgIndex = 0; imgIndex < screenshots.length; imgIndex++) {
+          const img = screenshots[imgIndex]
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Screenshot ${imgIndex + 1}: ${img.name}`,
+                  bold: true,
+                  size: 18,
+                }),
+              ],
+              spacing: { after: 100 },
+            })
+          )
+          const bytes = await fetchImageBytes(img.url)
+          if (bytes) {
+            children.push(new Paragraph({ children: [imageRunFromBytes(bytes)] }))
+          }
+        }
+      }
+      
+      // Add section content with proper formatting
+      let sectionBody = section.content
+      if (section.id === 'implementation-timeline') {
+        sectionBody = normalizeImplementationTimeline(sectionBody)
+      }
+      
+      // Parse content and create formatted paragraphs (including markdown image lines)
+      const paragraphs = sectionBody.split('\n').filter(line => line.trim())
+      
+      paragraphs.forEach(paragraph => {
+        const trimmedParagraph = paragraph.trim()
+        if (!trimmedParagraph) return
+        
+        // Standalone markdown image line → embed in DOCX
+        const m = /^!\[(.*?)\]\((.*?)\)$/.exec(trimmedParagraph)
+        if (m) {
+          const src = m[2]
+          // best-effort embed (no await inside forEach)
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          ;(async () => {
+            const bytes = await fetchImageBytes(src)
+            if (bytes) {
+              children.push(new Paragraph({ children: [imageRunFromBytes(bytes)] }))
+              if (m[1]) {
+                children.push(new Paragraph({ children: [new TextRun({ text: m[1], size: 16, italics: true, color: "666666" })] }))
+              }
+            }
+          })()
+          return
+        }
+
+        // Handle table content
+        if (trimmedParagraph.startsWith('|') && trimmedParagraph.endsWith('|')) {
+          const tableData = parseTableRow(trimmedParagraph)
+          if (tableData.length > 0) {
+            const tableRows = [tableData]
+            // Look for more table rows
+            const nextParagraphs = paragraphs.slice(paragraphs.indexOf(paragraph) + 1)
+            for (const nextPara of nextParagraphs) {
+              if (nextPara.trim().startsWith('|') && nextPara.trim().endsWith('|')) {
+                tableRows.push(parseTableRow(nextPara.trim()))
+              } else {
+                break
+              }
+            }
+            
+            if (tableRows.length > 1) {
+              const table = createWordTable(tableRows)
+              children.push(table)
+              return
+            }
+          }
+        }
+        
+        // Handle headings - matching PDF styling
+        if (trimmedParagraph.startsWith('###')) {
+          // H3 styling - matching PDF h3 (color: #374151)
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: trimmedParagraph.replace(/^###\s*/, ''),
+                  bold: true,
+                  size: 20,
+                  color: "374151", // Gray color matching PDF h3
+                }),
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200, after: 100 },
+            })
+          )
+        } else if (trimmedParagraph.startsWith('##')) {
+          // H2 styling - matching PDF h2 (color: #1e40af)
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: trimmedParagraph.replace(/^##\s*/, ''),
+                  bold: true,
+                  size: 22,
+                  color: "1e40af", // Darker blue matching PDF h2
+                }),
+              ],
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 300, after: 150 },
+            })
+          )
+        } else if (trimmedParagraph.startsWith('#')) {
+          // H1 styling - matching PDF h1 (color: #2563eb)
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: trimmedParagraph.replace(/^#\s*/, ''),
+                  bold: true,
+                  size: 24,
+                  color: "2563eb", // Blue color matching PDF h1
+                }),
+              ],
+              heading: HeadingLevel.TITLE,
+              spacing: { before: 400, after: 200 },
+            })
+          )
+        } else {
+          // Regular paragraph - matching PDF body styling (Arial, line-height: 1.6)
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: trimmedParagraph,
+                  size: 20,
+                  font: "Arial", // Matching PDF font-family: Arial
+                }),
+              ],
+              spacing: { after: 100 },
+            })
+          )
+        }
+      })
+    }
+    
+    // Create the document with metadata and styling matching PDF
+    const doc = new Document({
+      creator: "Proposal Generator App",
+      title: "Project Proposal",
+      description: "Generated project proposal document",
+      subject: "Project Proposal",
+      keywords: ["proposal", "project", "business"],
+      sections: [
+        {
+          properties: {
+            // Matching PDF page margins (@page { margin: 0.75in; })
+            page: {
+              margin: {
+                top: convertInchesToTwip(0.75),
+                right: convertInchesToTwip(0.75),
+                bottom: convertInchesToTwip(0.75),
+                left: convertInchesToTwip(0.75),
+              },
+            },
+          },
+          children: children,
+        },
+      ],
+    })
+    
+    // Generate and download the document
+    const buffer = await Packer.toBuffer(doc)
+    const blob = new Blob([buffer], { 
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+    })
+    
+    const fileName = `Project_Proposal_${new Date().toISOString().split('T')[0]}.docx`
+    saveAs(blob, fileName)
+  }
+  
+  // Helper function to parse table rows
+  const parseTableRow = (row: string): string[] => {
+    return row.split('|').slice(1, -1).map(cell => cell.trim())
+  }
+  
+  // Helper function to create Word tables - matching PDF table styling
+  const createWordTable = (rows: string[][]): Table => {
+    const tableRows = rows.map((row, rowIndex) => 
+      new TableRow({
+        children: row.map(cell => 
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: cell,
+                    size: 18,
+                    font: "Arial", // Matching PDF font-family: Arial
+                    bold: rowIndex === 0, // Make header row bold
+                  }),
+                ],
+                spacing: { 
+                  before: 200, // 12px padding = ~200 twips
+                  after: 200,
+                },
+              }),
+            ],
+            width: {
+              size: 100 / row.length,
+              type: WidthType.PERCENTAGE,
+            },
+            borders: {
+              // Matching PDF table borders (border: 1px solid #ddd)
+              top: { style: BorderStyle.SINGLE, size: 1, color: "dddddd" },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: "dddddd" },
+              left: { style: BorderStyle.SINGLE, size: 1, color: "dddddd" },
+              right: { style: BorderStyle.SINGLE, size: 1, color: "dddddd" },
+            },
+            shading: {
+              // Header row background color matching PDF (background-color: #f3f4f6)
+              fill: rowIndex === 0 ? "f3f4f6" : "ffffff",
+            },
+          })
+        ),
+      })
+    )
+    
+    return new Table({
+      rows: tableRows,
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE,
+      },
+    })
   }
 
   // Ensure activities column in the implementation timeline table is a single line per row
@@ -603,31 +1021,6 @@ ${approvedSections.map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
     printWindow.document.close()
   }
 
-  const downloadAsWord = (content: string) => {
-    // Create a simple text file that can be opened in Word
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `Project_Proposal_${new Date().toISOString().split('T')[0]}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  const downloadAsPowerPoint = (content: string) => {
-    // For PowerPoint, we'll create a simple text file that can be imported
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `Project_Proposal_${new Date().toISOString().split('T')[0]}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
 
   const progress = {
     total: sections.length,
@@ -914,37 +1307,35 @@ ${approvedSections.map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
               
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Export Format:</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      {exportFormat}
-                  </Button>
-                </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => setExportFormat("PDF")}>
-                      PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setExportFormat("Word")}>
-                      Word
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setExportFormat("PowerPoint")}>
-                      PowerPoint
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <Button variant="outline" size="sm" disabled>
+                  PDF
+                </Button>
               </div>
             </div>
 
-              <Button
-              onClick={handleDownload}
-              disabled={!allApproved || downloading}
-                className={cn(
-                "bg-blue-600 hover:bg-blue-700",
-                (!allApproved || downloading) && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              {downloading ? "Downloading..." : "Download Proposal"}
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleDownload}
+                  disabled={!allApproved || downloading}
+                  className={cn(
+                    "bg-blue-600 hover:bg-blue-700",
+                    (!allApproved || downloading) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {downloading ? "Downloading..." : "Download PDF"}
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadDocs}
+                  disabled={!allApproved || downloadingDocs}
+                  className={cn(
+                    "border-green-600 text-green-600 hover:bg-green-50",
+                    (!allApproved || downloadingDocs) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {downloadingDocs ? "Generating Word..." : "Download Word"}
+                </Button>
+              </div>
               </div>
 
           {!allApproved && (
